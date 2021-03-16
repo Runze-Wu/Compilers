@@ -42,24 +42,44 @@ ID [A-Za-z_][A-Za-z0-9_]*
 /* Definitions end. */
 %%
     /* Multiple Comments */
-<COMMENT,INITIAL>"/*" {
-    BEGIN(COMMENT);
+"/*" {
+    char c;
+    int meet = 0;
+    int flag = 0;
+    while((c=input())!='\0'){
+        if(c==EOF) break;
+        if(c=='\n') curr_lineno++;
+        else if(c=='*') meet=1;
+        if(meet) {
+            if(c=='/') {flag=1; break;}
+            else if(c!='*') meet=0;
+        }
+    }
+    if(flag) printf("Line %d comment end\n",curr_lineno);
+    else printf("Error type A at Line %d: unmatched comment\n",curr_lineno);
 }
+<<EOF>> {
+    printf("EOF end of the file\n");
+    return 0;
+}
+    /*
 <COMMENT>[^*\n]* {}
-<COMMENT>"*"+[^*/\n]* {}
+<COMMENT>"*"+[^*\/\n]* {}
 <COMMENT>"\n" {
     curr_lineno++;
 }
 <COMMENT>"*"+"/" {
-    printf("comment end\n");
+    
     BEGIN(INITIAL);
-}
+} */
+
     /* Inline Comments */
 "//" {
     BEGIN(INLINE_COMMENT);
 }
 <INLINE_COMMENT>[^\n]* {}
 <INLINE_COMMENT>\n {
+    printf("Line %d inline comment end\n",curr_lineno);
     curr_lineno++;
     BEGIN(INITIAL);
 }
@@ -145,12 +165,14 @@ ID [A-Za-z_][A-Za-z0-9_]*
 {FLOAT} {
     printf("FLOAT: %s\n",yytext);
 }
+
 ({INT}\.)|(\.{INT}) {
     printf("Error type A at Line %d: Float lack right or left part:'%s'\n",curr_lineno,yytext);
 }
+    /*
 {INT}+[^\t\f\r\v ;\n0-9.]+{INT}* {
     printf("Error type A at Line %d: Number with unexpected  characters:'%s'\n",curr_lineno,yytext);
-}
+} */
 
 {ID} {
     printf("ID: %s\n",yytext);
