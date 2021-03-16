@@ -1,10 +1,12 @@
 /* The scanner definition for C--. */
 %{
 /* declarations part */
+#include "syntax.tab.h"
 extern FILE *yyin;
-extern int curr_lineno;
+// extern int yylineno;
 %}
 
+%option yylineno
 /* Define names for regular expressions here. */
 DELIM [\t\f\r\v ;\n]
 DIGIT [0-9]
@@ -48,15 +50,14 @@ ID [A-Za-z_][A-Za-z0-9_]*
     int flag = 0;
     while((c=input())!='\0'){
         if(c==EOF) break;
-        if(c=='\n') curr_lineno++;
         else if(c=='*') meet=1;
         if(meet) {
             if(c=='/') {flag=1; break;}
             else if(c!='*') meet=0;
         }
     }
-    if(flag) printf("Line %d comment end\n",curr_lineno);
-    else printf("Error type A at Line %d: unmatched comment\n",curr_lineno);
+    if(flag) printf("Line %d comment end\n",yylineno);
+    else printf("Error type A at Line %d: unmatched comment\n",yylineno);
 }
 <<EOF>> {
     printf("EOF end of the file\n");
@@ -66,7 +67,7 @@ ID [A-Za-z_][A-Za-z0-9_]*
 <COMMENT>[^*\n]* {}
 <COMMENT>"*"+[^*\/\n]* {}
 <COMMENT>"\n" {
-    curr_lineno++;
+    yylineno++;
 }
 <COMMENT>"*"+"/" {
     
@@ -79,14 +80,11 @@ ID [A-Za-z_][A-Za-z0-9_]*
 }
 <INLINE_COMMENT>[^\n]* {}
 <INLINE_COMMENT>\n {
-    printf("Line %d inline comment end\n",curr_lineno);
-    curr_lineno++;
+    printf("Line %d inline comment end\n",yylineno);
     BEGIN(INITIAL);
 }
-"\n" {
-	curr_lineno++;
-}
-[\t\f\r\v ]	{}
+
+[\t\f\r\v \n]	{}
 {SEMI} {
   printf("SEMI\n");
 }
@@ -160,24 +158,24 @@ ID [A-Za-z_][A-Za-z0-9_]*
     printf("INT: %s\n",yytext);
 }
 0{DIGIT}+ {
-    printf("Error type A at Line %d: Decimal with leading zeros:'%s'\n",curr_lineno,yytext);
+    printf("Error type A at Line %d: Decimal with leading zeros:'%s'\n",yylineno,yytext);
 }
 {FLOAT} {
     printf("FLOAT: %s\n",yytext);
 }
 
 ({INT}\.)|(\.{INT}) {
-    printf("Error type A at Line %d: Float lack right or left part:'%s'\n",curr_lineno,yytext);
+    printf("Error type A at Line %d: Float lack right or left part:'%s'\n",yylineno,yytext);
 }
     /*
 {INT}+[^\t\f\r\v ;\n0-9.]+{INT}* {
-    printf("Error type A at Line %d: Number with unexpected  characters:'%s'\n",curr_lineno,yytext);
+    printf("Error type A at Line %d: Number with unexpected  characters:'%s'\n",yylineno,yytext);
 } */
 
 {ID} {
     printf("ID: %s\n",yytext);
 }
 . {
-    printf("Error type A at Line %d: Mysterious characters\'%s\'\n",curr_lineno,yytext);
+    printf("Error type A at Line %d: Mysterious characters\'%s\'\n",yylineno,yytext);
 }
 %%
