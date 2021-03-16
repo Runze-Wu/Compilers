@@ -11,7 +11,8 @@ int main(int argc,char**argv){
         printf("open file:%s\n",argv[1]);
         curr_lineno=1;
     }
-    while(yylex()!=0);
+    yyrestart(yyin);
+    yyparse();
     fclose(yyin);
     return 0; 
 }
