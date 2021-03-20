@@ -124,6 +124,10 @@ ID [A-Za-z_][A-Za-z0-9_]*
     add_token_node("DOT", OTHER, NULL);
     return (DOT);
 }
+{NOT} {
+    add_token_node("NOT", OTHER, NULL);
+    return (NOT);
+}
 {TYPE} {
     add_token_node("TYPE", TYPE_TYPE, yytext);
     return (TYPE);
