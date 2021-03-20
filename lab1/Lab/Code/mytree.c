@@ -21,7 +21,7 @@ void print_tree(struct treenode* mynode, int depth) {
                 break;
         }
     } else {
-        printf(" (%d)", mynode->column);
+        printf(" (%d)", mynode->line);
     }
     printf("\n");
     print_tree(mynode->child, depth + 1);
@@ -52,6 +52,32 @@ struct treenode* token_node(const char* name, enum DATATYPE datatype, const char
     }
     return mynode;
 }
+struct treenode* nonterminal_node(const char* name, int line) {
+    struct treenode* mynode = (struct treenode*)malloc(sizeof(struct treenode));
+    mynode->bro = NULL;
+    mynode->child = NULL;
+    mynode->line = line;
+    mynode->tokenFlag = 0;
+    sscanf(name, "%s", mynode->name);
+    return mynode;
+}
+void set_parent_brother(struct treenode* parent, int node_num, ...) {
+    va_list valist;
+    int i = 0;
+    va_start(valist, node_num);
+    struct treenode* node;
+    for (; i < node_num; i++) {
+        node = va_arg(valist, struct treenode*);
+        if (node != NULL) break;
+    }
+    ++i;
+    parent->child = node;
+    for (; i < node_num; i++) {
+        if ((node->bro = va_arg(valist, struct treenode*)) != NULL) node = node->bro;
+    }
+}
+void set_parent(struct treenode* parent, struct treenode* node) { parent->child = node; }
+void set_brother(struct treenode* bro, struct treenode* node) { node->bro = bro; }
 /*
 int main() {
     Node* node1 = add_token_node("ID", TYPE_ID, "abc");

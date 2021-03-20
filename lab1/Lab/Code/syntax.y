@@ -6,6 +6,7 @@
     void yyerror(const char *msg);
     int yylex();
     #define YYDEBUG 1
+    extern struct treenode* root;
 %}
 /* declaration part */
 %define parse.error verbose
@@ -65,97 +66,263 @@
 %nonassoc ELSE
 %%
 /* High-level Definitions */
-Program: ExtDefList {}
+Program: ExtDefList {
+        $$=nonterminal_node("Program",@1.first_line);
+        root=$$;
+        set_parent_brother($$,1,$1);
+    }
 ;
-ExtDefList: ExtDef ExtDefList {}
-    | /* empty */ {}
+ExtDefList: ExtDef ExtDefList {
+        $$=nonterminal_node("ExtDefList",@1.first_line);
+        set_parent_brother($$,2,$1,$2);
+    }
+    | /* empty */ {
+        $$=NULL;
+    }
 ;
-ExtDef: Specifier ExtDecList SEMI {}
-    | Specifier SEMI {}
-    | Specifier FunDec CompSt {}
+ExtDef: Specifier ExtDecList SEMI {
+        $$=nonterminal_node("ExtDef",@1.first_line);
+        set_parent_brother($$,3,$1,$2,$3);
+    }
+    | Specifier SEMI {    
+        $$=nonterminal_node("ExtDef",@1.first_line);
+        set_parent_brother($$,2,$1,$2);
+    }
+    | Specifier FunDec CompSt {
+        $$=nonterminal_node("ExtDef",@1.first_line);
+        set_parent_brother($$,3,$1,$2,$3);
+    }
     | error SEMI {}
     | error Specifier SEMI {}
     | Specifier error SEMI {}
 ;
-ExtDecList: VarDec {}
-    | VarDec COMMA ExtDecList {}
+ExtDecList: VarDec {
+        $$=nonterminal_node("ExtDecList",@1.first_line);
+        set_parent_brother($$,1,$1);
+    }
+    | VarDec COMMA ExtDecList {
+        $$=nonterminal_node("ExtDecList",@1.first_line);
+        set_parent_brother($$,3,$1,$2,$3);
+    }
 ;
 /* Specifiers */
-Specifier: TYPE {}
-    | StructSpecifier {}
+Specifier: TYPE {
+        $$=nonterminal_node("Specifier",@1.first_line);
+        set_parent_brother($$,1,$1);
+    }
+    | StructSpecifier {
+        $$=nonterminal_node("Specifier",@1.first_line);
+        set_parent_brother($$,1,$1);
+    }
 ;
-StructSpecifier: STRUCT OptTag LC DefList RC {}
-    | STRUCT Tag {}
+StructSpecifier: STRUCT OptTag LC DefList RC {
+        $$=nonterminal_node("StructSpecifier",@1.first_line);
+        set_parent_brother($$,5,$1,$2,$3,$4,$5);
+    }
+    | STRUCT Tag {
+        $$=nonterminal_node("StructSpecifier",@1.first_line);
+        set_parent_brother($$,2,$1,$2);
+    }
     | STRUCT OptTag LC error RC {}
 ;
-OptTag: ID {}
-    | /* empty */ {}
+OptTag: ID {
+        $$=nonterminal_node("OptTag",@1.first_line);
+        set_parent_brother($$,1,$1);
+    }
+    | /* empty */ {
+        $$=NULL;
+    }
 ;
-Tag: ID {}
+Tag: ID {
+        $$=nonterminal_node("Tag",@1.first_line);
+        set_parent_brother($$,1,$1);
+    }
 ;
 /* Declarators */
-VarDec: ID {}
-    | VarDec LB INT RB {}
+VarDec: ID {
+        $$=nonterminal_node("VarDec",@1.first_line);
+        set_parent_brother($$,1,$1);
+    }
+    | VarDec LB INT RB {
+        $$=nonterminal_node("VarDec",@1.first_line);
+        set_parent_brother($$,4,$1,$2,$3,$4);
+    }
     | VarDec LB error RB {}
 ;
-FunDec: ID LP VarList RP {}
-    | ID LP RP {}
+FunDec: ID LP VarList RP {
+        $$=nonterminal_node("FunDec",@1.first_line);
+        set_parent_brother($$,4,$1,$2,$3,$4);
+    }
+    | ID LP RP {
+        $$=nonterminal_node("FunDec",@1.first_line);
+        set_parent_brother($$,3,$1,$2,$3);
+    }
     | ID LP error RP {}
     
 ;
-VarList: ParamDec COMMA VarList {}
-    | ParamDec {}
+VarList: ParamDec COMMA VarList {
+        $$=nonterminal_node("VarList",@1.first_line);
+        set_parent_brother($$,3,$1,$2,$3);
+    }
+    | ParamDec {
+        $$=nonterminal_node("VarList",@1.first_line);
+        set_parent_brother($$,1,$1);
+    }
 ;
-ParamDec: Specifier VarDec {}
+ParamDec: Specifier VarDec {
+        $$=nonterminal_node("ParamDec",@1.first_line);
+        set_parent_brother($$,2,$1,$2);
+    }
 ;
 /* Statements */
-CompSt: LC DefList StmtList RC {}
+CompSt: LC DefList StmtList RC {
+        $$=nonterminal_node("CompSt",@1.first_line);
+        set_parent_brother($$,4,$1,$2,$3,$4);
+    }
     | LC DefList error RC {}
 ;
-StmtList: Stmt StmtList {}
-    | /* empty */ {}
+StmtList: Stmt StmtList {
+        $$=nonterminal_node("StmtList",@1.first_line);
+        set_parent_brother($$,2,$1,$2);
+    }
+    | /* empty */ {
+        $$=NULL;
+    }
 ;
-Stmt: Exp SEMI {}
-    | CompSt {}
-    | RETURN Exp SEMI {}
-    | IF LP Exp RP Stmt %prec LOWER_THAN_ELSE {}
-    | IF LP Exp RP Stmt ELSE Stmt {}
-    | WHILE LP Exp RP Stmt {}
+Stmt: Exp SEMI {
+        $$=nonterminal_node("Stmt",@1.first_line);
+        set_parent_brother($$,2,$1,$2);
+    }
+    | CompSt {
+        $$=nonterminal_node("Stmt",@1.first_line);
+        set_parent_brother($$,1,$1);
+    }
+    | RETURN Exp SEMI {
+        $$=nonterminal_node("Stmt",@1.first_line);
+        set_parent_brother($$,3,$1,$2,$3);
+    }
+    | IF LP Exp RP Stmt %prec LOWER_THAN_ELSE {
+        $$=nonterminal_node("Stmt",@1.first_line);
+        set_parent_brother($$,5,$1,$2,$3,$4,$5);
+    }
+    | IF LP Exp RP Stmt ELSE Stmt {
+        $$=nonterminal_node("Stmt",@1.first_line);
+        set_parent_brother($$,7,$1,$2,$3,$4,$5,$6,$7);
+    }
+    | WHILE LP Exp RP Stmt {
+        $$=nonterminal_node("Stmt",@1.first_line);
+        set_parent_brother($$,5,$1,$2,$3,$4,$5);
+    }
     | error SEMI {}
     | RETURN error SEMI {}
     | RETURN Exp error {}
 ;
 /* Local Definitions */
-DefList: Def DefList {}
-    | /* empty */ {}
+DefList: Def DefList {
+        $$=nonterminal_node("DefList",@1.first_line);
+        set_parent_brother($$,2,$1,$2);
+    }
+    | /* empty */ {
+        $$=NULL;
+    }
 ;
-Def: Specifier DecList SEMI {}
+Def: Specifier DecList SEMI {
+        $$=nonterminal_node("Def",@1.first_line);
+        set_parent_brother($$,3,$1,$2,$3);
+    }
 ;
-DecList: Dec {}
-    | Dec COMMA DecList {}
+DecList: Dec {
+        $$=nonterminal_node("DecList",@1.first_line);
+        set_parent_brother($$,1,$1);
+
+    }
+    | Dec COMMA DecList {
+        $$=nonterminal_node("DecList",@1.first_line);
+        set_parent_brother($$,3,$1,$2,$3);
+    }
 ;
-Dec: VarDec {}
-    | VarDec ASSIGNOP Exp {}
+Dec: VarDec {
+        $$=nonterminal_node("Dec",@1.first_line);
+        set_parent_brother($$,1,$1);
+    }
+    | VarDec ASSIGNOP Exp {
+        $$=nonterminal_node("Dec",@1.first_line);
+        set_parent_brother($$,3,$1,$2,$3);
+    }
 ;
 /* Expressions */
-Exp: Exp ASSIGNOP Exp {}
-    | Exp AND Exp {}
-    | Exp OR Exp {}
-    | Exp RELOP Exp {}
-    | Exp PLUS Exp {}
-    | Exp MINUS Exp {}
-    | Exp STAR Exp {}
-    | Exp DIV Exp {}
-    | LP Exp RP {}
-    | MINUS Exp %prec UMINUS{}
-    | NOT Exp {}
-    | ID LP Args RP {}
-    | ID LP RP {}
-    | Exp LB Exp RB {}
-    | Exp DOT ID {}
-    | ID {}
-    | INT {}
-    | FLOAT {}
+Exp: Exp ASSIGNOP Exp {
+        $$=nonterminal_node("Exp",@1.first_line);
+        set_parent_brother($$,3,$1,$2,$3);
+    }
+    | Exp AND Exp {
+        $$=nonterminal_node("Exp",@1.first_line);
+        set_parent_brother($$,3,$1,$2,$3);
+    }
+    | Exp OR Exp {
+        $$=nonterminal_node("Exp",@1.first_line);
+        set_parent_brother($$,3,$1,$2,$3);
+    }
+    | Exp RELOP Exp {
+        $$=nonterminal_node("Exp",@1.first_line);
+        set_parent_brother($$,3,$1,$2,$3);
+    }
+    | Exp PLUS Exp {
+        $$=nonterminal_node("Exp",@1.first_line);
+        set_parent_brother($$,3,$1,$2,$3);
+    }
+    | Exp MINUS Exp {
+        $$=nonterminal_node("Exp",@1.first_line);
+        set_parent_brother($$,3,$1,$2,$3);
+    }
+    | Exp STAR Exp {
+        $$=nonterminal_node("Exp",@1.first_line);
+        set_parent_brother($$,3,$1,$2,$3);
+    }
+    | Exp DIV Exp {
+        $$=nonterminal_node("Exp",@1.first_line);
+        set_parent_brother($$,3,$1,$2,$3);
+    }
+    | LP Exp RP {
+        $$=nonterminal_node("Exp",@1.first_line);
+        set_parent_brother($$,3,$1,$2,$3);
+    }
+    | MINUS Exp %prec UMINUS{
+        $$=nonterminal_node("Exp",@1.first_line);
+        set_parent_brother($$,2,$1,$2);
+    }
+    | NOT Exp {
+        $$=nonterminal_node("Exp",@1.first_line);
+        set_parent_brother($$,2,$1,$2);
+    }
+    | ID LP Args RP {
+        $$=nonterminal_node("Exp",@1.first_line);
+        set_parent_brother($$,4,$1,$2,$3,$4);
+    }
+    | ID LP RP {
+        $$=nonterminal_node("Exp",@1.first_line);
+        set_parent_brother($$,3,$1,$2,$3);
+    }
+    | Exp LB Exp RB {
+        $$=nonterminal_node("Exp",@1.first_line);
+        set_parent_brother($$,4,$1,$2,$3,$4);
+    }
+    | Exp DOT ID {
+        $$=nonterminal_node("Exp",@1.first_line);
+        set_parent_brother($$,3,$1,$2,$3);
+    }
+    | ID {
+        $$=nonterminal_node("Exp",@1.first_line);
+        set_parent_brother($$,1,$1);
+    }
+    | INT {
+        $$=nonterminal_node("Exp",@1.first_line);
+        set_parent_brother($$,1,$1);
+    }
+    | FLOAT {
+        $$=nonterminal_node("Exp",@1.first_line);
+        set_parent_brother($$,1,$1);
+    }
     | Exp ASSIGNOP error {}
     | Exp AND error {}
     | Exp OR error {}
@@ -170,8 +337,14 @@ Exp: Exp ASSIGNOP Exp {}
     | ID LP error RP {}
     | Exp LB error RB {}
 ;
-Args: Exp COMMA Args {}
-    | Exp {}
+Args: Exp COMMA Args {
+        $$=nonterminal_node("Args",@1.first_line);
+        set_parent_brother($$,3,$1,$2,$3);
+    }
+    | Exp {
+        $$=nonterminal_node("Args",@1.first_line);
+        set_parent_brother($$,1,$1);
+    }
 ;
 %%
 
