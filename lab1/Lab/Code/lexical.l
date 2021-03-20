@@ -2,8 +2,18 @@
 %{
 /* declarations part */
 #include "syntax.tab.h"
-extern FILE *yyin;
-// extern int yylineno;
+#include "mytree.h"
+extern int lexical_errs;
+extern YYSTYPE yylval;
+int yycolumn = 1;
+#define YY_USER_ACTION \
+    yylloc.first_line = yylloc.last_line = yylineno; \
+    yylloc.first_column = yycolumn; \
+    yylloc.last_column = yycolumn + yyleng - 1; \
+    yycolumn += yyleng;
+int yylex();
+void lexical_error_handler(char *msg);
+void add_token_node(const char* name, enum DATATYPE datatype, const char* val);
 %}
 
 %option yylineno
@@ -39,7 +49,6 @@ INT 0|([1-9]{DIGIT}*)
 FLOAT {INT}{DOT}{DIGIT}+
 ID [A-Za-z_][A-Za-z0-9_]*
 
-%x COMMENT
 %x INLINE_COMMENT
 /* Definitions end. */
 %%
@@ -56,24 +65,12 @@ ID [A-Za-z_][A-Za-z0-9_]*
             else if(c!='*') meet=0;
         }
     }
-    if(flag) printf("Line %d comment end\n",yylineno);
-    else printf("Error type A at Line %d: unmatched comment\n",yylineno);
+    if(!flag) lexical_error_handler("unmatched comment");
 }
 <<EOF>> {
-    printf("EOF end of the file\n");
+    // printf("EOF end of the file\n");
     return 0;
 }
-    /*
-<COMMENT>[^*\n]* {}
-<COMMENT>"*"+[^*\/\n]* {}
-<COMMENT>"\n" {
-    yylineno++;
-}
-<COMMENT>"*"+"/" {
-    
-    BEGIN(INITIAL);
-} */
-
     /* Inline Comments */
 "//" {
     BEGIN(INLINE_COMMENT);
@@ -84,88 +81,113 @@ ID [A-Za-z_][A-Za-z0-9_]*
     BEGIN(INITIAL);
 }
 
-[\t\f\r\v \n]	{}
 {SEMI} {
-  printf("SEMI\n");
+  add_token_node("SEMI", OTHER, NULL);
+  return (SEMI);
 }
 {COMMA} {
-  printf("SEMI\n");
+  add_token_node("COMMA", OTHER, NULL);
+  return (COMMA);
 }
 {RELOP} {
-    printf("RELOP: %s\n",yytext);
+    add_token_node("RELOP", OTHER, NULL);
+    return (RELOP);
 }
 {ASSIGNOP} {
-    printf("ASSIGNOP\n");
+    add_token_node("ASSIGNOP", OTHER, NULL);
+    return (ASSIGNOP);
 }
 {PLUS} {
-    printf("PLUS\n");
+    add_token_node("PLUS", OTHER, NULL);
+    return (PLUS);
 }
 {MINUS} {
-    printf("MINUS\n");
+    add_token_node("MINUS", OTHER, NULL);
+    return (MINUS);
 }
 {STAR} {
-    printf("STAR\n");
+    add_token_node("STAR", OTHER, NULL);
+    return (STAR);
 }
 {DIV} {
-    printf("DIV\n");
+    add_token_node("DIV", OTHER, NULL);
+    return (DIV);
 }
 {AND} {
-    printf("AND\n");
+    add_token_node("AND", OTHER, NULL);
+    return (AND);
 }
 {OR} {
-    printf("OR\n");
+    add_token_node("OR", OTHER, NULL);
+    return (OR);
 }
 {DOT} {
-    printf("DOT\n");
+    add_token_node("DOT", OTHER, NULL);
+    return (DOT);
 }
 {TYPE} {
-    printf("TYPE: %s\n",yytext);
+    add_token_node("TYPE", TYPE_TYPE, yytext);
+    return (TYPE);
 }
 {LP} {
-    printf("LP\n");
+    add_token_node("LP", OTHER, NULL);
+    return (LP);
 }
 {RP} {
-    printf("RP\n");
+    add_token_node("RP", OTHER, NULL);
+    return (RP);
 }
 {LB} {
-    printf("LB\n");
+    add_token_node("LB", OTHER, NULL);
+    return (LB);
 }
 {RB} {
-    printf("RB\n");
+    add_token_node("RB", OTHER, NULL);
+    return (RB);
 }
 {LC} {
-    printf("LC\n");
+    add_token_node("LC", OTHER, NULL);
+    return (LC);
 }
 {RC} {
     printf("RC\n");
+    add_token_node("RC", OTHER, NULL);
+    return (RC);
 }
 {STRUCT} {
-    printf("STRUCT\n");
+    add_token_node("STRUCT", OTHER, NULL);
+    return (STRUCT);
 }
 {RETURN} {
-    printf("RETURN\n");
+    add_token_node("RETURN", OTHER, NULL);
+    return (RETURN);
 }
 {IF} {
-    printf("IF\n");
+    add_token_node("IF", OTHER, NULL);
+    return (IF);
 }
 {ELSE} {
-    printf("ELSE\n");
+    add_token_node("ELSE", OTHER, NULL);
+    return (ELSE);
 }
 {WHILE} {
-    printf("WHILE\n");
+    add_token_node("WHILE", OTHER, NULL);
+    return (WHILE);
 }
 {INT} {
-    printf("INT: %s\n",yytext);
+    add_token_node("INT", TYPE_INT, yytext);
+    return (INT);
 }
 0{DIGIT}+ {
-    printf("Error type A at Line %d: Decimal with leading zeros:'%s'\n",yylineno,yytext);
+    lexical_error_handler("Decimal with leading zeros");
 }
 {FLOAT} {
-    printf("FLOAT: %s\n",yytext);
+    add_token_node("FLOAT", TYPE_FLOAT, yytext);
+    return (FLOAT);
 }
 
 ({INT}\.)|(\.{INT}) {
-    printf("Error type A at Line %d: Float lack right or left part:'%s'\n",yylineno,yytext);
+    lexical_error_handler("Float lack right or left part");
 }
     /*
 {INT}+[^\t\f\r\v ;\n0-9.]+{INT}* {
@@ -173,9 +195,23 @@ ID [A-Za-z_][A-Za-z0-9_]*
 } */
 
 {ID} {
-    printf("ID: %s\n",yytext);
+    add_token_node("ID", TYPE_ID, yytext);
+    return (ID);
 }
+"\n" {
+    yycolumn = 1;
+}
+[\t\f\r\v ]	{}
 . {
-    printf("Error type A at Line %d: Mysterious characters\'%s\'\n",yylineno,yytext);
+    lexical_error_handler("Mysterious characters");
 }
 %%
+void lexical_error_handler(char *msg){
+    lexical_errs++;
+    printf("Error type A at Line %d: %s %s\n", yylineno, msg ,yytext);
+}
+void add_token_node(const char* name, enum DATATYPE datatype, const char* val)
+{
+    yylval.node = token_node(name, datatype, val);
+    print_tree(yylval.node,-1);
+}
