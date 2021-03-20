@@ -6,6 +6,7 @@
 extern int lexical_errs;
 extern YYSTYPE yylval;
 int yycolumn = 1;
+extern int yydebug;
 #define YY_USER_ACTION \
     yylloc.first_line = yylloc.last_line = yylineno; \
     yylloc.first_column = yycolumn; \
@@ -68,7 +69,6 @@ ID [A-Za-z_][A-Za-z0-9_]*
     if(!flag) lexical_error_handler("unmatched comment");
 }
 <<EOF>> {
-    // printf("EOF end of the file\n");
     return 0;
 }
     /* Inline Comments */
@@ -77,7 +77,6 @@ ID [A-Za-z_][A-Za-z0-9_]*
 }
 <INLINE_COMMENT>[^\n]* {}
 <INLINE_COMMENT>\n {
-    printf("Line %d inline comment end\n",yylineno);
     BEGIN(INITIAL);
 }
 
@@ -150,7 +149,6 @@ ID [A-Za-z_][A-Za-z0-9_]*
     return (LC);
 }
 {RC} {
-    printf("RC\n");
     add_token_node("RC", OTHER, NULL);
     return (RC);
 }
@@ -213,5 +211,5 @@ void lexical_error_handler(char *msg){
 void add_token_node(const char* name, enum DATATYPE datatype, const char* val)
 {
     yylval.node = token_node(name, datatype, val);
-    print_tree(yylval.node,-1);
+    if(yydebug) print_tree(yylval.node,-1);
 }
