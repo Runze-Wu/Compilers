@@ -4,12 +4,13 @@
     extern int syntax_errs;
     extern int yylineno;
     void yyerror(const char *msg);
+    void my_yyerror(const char *msg, struct treenode* node);
     int yylex();
     #define YYDEBUG 1
     extern struct treenode* root;
 %}
 /* declaration part */
-%define parse.error verbose
+%define parse.error simple
 %locations
 
 %union {
@@ -62,6 +63,7 @@
 %right NOT
 %left  UMINUS /* 处理负号 */
 %left  DOT LP RP LB RB
+
 %nonassoc LOWER_THAN_ELSE
 %nonassoc ELSE
 %%
@@ -92,9 +94,6 @@ ExtDef: Specifier ExtDecList SEMI {
         $$=nonterminal_node("ExtDef",@1.first_line);
         set_parent_brother($$,3,$1,$2,$3);
     }
-    | error SEMI {}
-    | error Specifier SEMI {}
-    | Specifier error SEMI {}
 ;
 ExtDecList: VarDec {
         $$=nonterminal_node("ExtDecList",@1.first_line);
@@ -123,7 +122,6 @@ StructSpecifier: STRUCT OptTag LC DefList RC {
         $$=nonterminal_node("StructSpecifier",@1.first_line);
         set_parent_brother($$,2,$1,$2);
     }
-    | STRUCT OptTag LC error RC {}
 ;
 OptTag: ID {
         $$=nonterminal_node("OptTag",@1.first_line);
@@ -147,7 +145,6 @@ VarDec: ID {
         $$=nonterminal_node("VarDec",@1.first_line);
         set_parent_brother($$,4,$1,$2,$3,$4);
     }
-    | VarDec LB error RB {}
 ;
 FunDec: ID LP VarList RP {
         $$=nonterminal_node("FunDec",@1.first_line);
@@ -157,7 +154,6 @@ FunDec: ID LP VarList RP {
         $$=nonterminal_node("FunDec",@1.first_line);
         set_parent_brother($$,3,$1,$2,$3);
     }
-    | ID LP error RP {}
     
 ;
 VarList: ParamDec COMMA VarList {
@@ -179,7 +175,6 @@ CompSt: LC DefList StmtList RC {
         $$=nonterminal_node("CompSt",@1.first_line);
         set_parent_brother($$,4,$1,$2,$3,$4);
     }
-    | LC DefList error RC {}
 ;
 StmtList: Stmt StmtList {
         $$=nonterminal_node("StmtList",@1.first_line);
@@ -213,9 +208,6 @@ Stmt: Exp SEMI {
         $$=nonterminal_node("Stmt",@1.first_line);
         set_parent_brother($$,5,$1,$2,$3,$4,$5);
     }
-    | error SEMI {}
-    | RETURN error SEMI {}
-    | RETURN Exp error {}
 ;
 /* Local Definitions */
 DefList: Def DefList {
@@ -234,7 +226,6 @@ Def: Specifier DecList SEMI {
 DecList: Dec {
         $$=nonterminal_node("DecList",@1.first_line);
         set_parent_brother($$,1,$1);
-
     }
     | Dec COMMA DecList {
         $$=nonterminal_node("DecList",@1.first_line);
@@ -323,19 +314,6 @@ Exp: Exp ASSIGNOP Exp {
         $$=nonterminal_node("Exp",@1.first_line);
         set_parent_brother($$,1,$1);
     }
-    | Exp ASSIGNOP error {}
-    | Exp AND error {}
-    | Exp OR error {}
-    | Exp RELOP error {}
-    | Exp PLUS error {}
-    | Exp MINUS error {}
-    | Exp STAR error {}
-    | Exp DIV error {}
-    | LP error RP {}
-    | MINUS error {}
-    | NOT error {}
-    | ID LP error RP {}
-    | Exp LB error RB {}
 ;
 Args: Exp COMMA Args {
         $$=nonterminal_node("Args",@1.first_line);
@@ -352,4 +330,8 @@ Args: Exp COMMA Args {
 void yyerror(const char *msg) {
     syntax_errs++;
     printf("Error type B at Line %d: %s\n",yylineno, msg);
+}
+void my_yyerror(const char *msg, struct treenode* node) {
+    syntax_errs++;
+    printf("Error type B at Line %d: %s\n",node->line, msg);
 }

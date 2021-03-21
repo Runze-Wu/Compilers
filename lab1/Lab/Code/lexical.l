@@ -47,7 +47,11 @@ ELSE else
 WHILE while
 
 INT 0|([1-9]{DIGIT}*)
+OCT 0[0-7]*
+HEX 0[X|x][0-9a-fA-F]+
 FLOAT {INT}{DOT}{DIGIT}+
+BASE ({DOT}{DIGIT}+|{DIGIT}+{DOT}|{DIGIT}+{DOT}{DIGIT}+)
+EXPONENT {BASE}[Ee][+-]?{DIGIT}+
 ID [A-Za-z_][A-Za-z0-9_]*
 
 %x INLINE_COMMENT
@@ -180,21 +184,18 @@ ID [A-Za-z_][A-Za-z0-9_]*
     add_token_node("INT", TYPE_INT, yytext);
     return (INT);
 }
-0{DIGIT}+ {
-    lexical_error_handler("Decimal with leading zeros");
+{OCT}|{HEX}|(0{DIGIT}+) {
+    lexical_error_handler("illegal int");
+    return (INT);
 }
 {FLOAT} {
     add_token_node("FLOAT", TYPE_FLOAT, yytext);
     return (FLOAT);
 }
-
-({INT}\.)|(\.{INT}) {
-    lexical_error_handler("Float lack right or left part");
+{EXPONENT}|({INT}\.)|(\.{INT}) {
+    lexical_error_handler("illegal float");
+    return (FLOAT);
 }
-    /*
-{INT}+[^\t\f\r\v ;\n0-9.]+{INT}* {
-    printf("Error type A at Line %d: Number with unexpected  characters:'%s'\n",yylineno,yytext);
-} */
 
 {ID} {
     add_token_node("ID", TYPE_ID, yytext);
@@ -206,6 +207,7 @@ ID [A-Za-z_][A-Za-z0-9_]*
 [\t\f\r\v ]	{}
 . {
     lexical_error_handler("Mysterious characters");
+    // return (ERROR);
 }
 %%
 void lexical_error_handler(char *msg){
