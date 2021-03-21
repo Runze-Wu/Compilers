@@ -8,7 +8,7 @@ struct treenode {
     int line;                // 非终结符结点对应的行号
     char name[32];           // 每个结点的名字类型
     int tokenFlag;           // 是否是终结符
-    enum DATATYPE datatype;  // 如果是int float ID要保存其对应的值
+    enum DATATYPE datatype;  // 如果是int float ID TYPE要保存其对应的值
     union {                  // 存储对应类型的值
         int val_int;
         float val_float;
@@ -23,6 +23,4 @@ struct treenode* token_node(const char* name, enum DATATYPE datatype,
 struct treenode* nonterminal_node(const char* name, int line);  // 添加非终结符结点，说明名称，以及列值
 void set_parent_brother(struct treenode* parent, int node_num,
                         ...);  // 设置父节点和兄弟节点，由于存在节点为空的情况，采用可变参数写法
-void set_parent(struct treenode* parent, struct treenode* node);  // 设置父节点
-void set_brother(struct treenode* bro, struct treenode* node);    // 设置兄弟节点
 #endif

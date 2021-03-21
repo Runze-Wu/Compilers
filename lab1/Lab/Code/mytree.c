@@ -1,7 +1,7 @@
 #include "mytree.h"
 void print_tree(struct treenode* mynode, int depth) {
     if (mynode == NULL) return;
-    for (int i = 0; i <= depth; i++) printf(" ");
+    for (int i = 0; i < depth; i++) printf("  ");
     printf("%s", mynode->name);
     if (mynode->tokenFlag) {
         switch (mynode->datatype) {
@@ -76,16 +76,3 @@ void set_parent_brother(struct treenode* parent, int node_num, ...) {
         if ((node->bro = va_arg(valist, struct treenode*)) != NULL) node = node->bro;
     }
 }
-void set_parent(struct treenode* parent, struct treenode* node) { parent->child = node; }
-void set_brother(struct treenode* bro, struct treenode* node) { node->bro = bro; }
-/*
-int main() {
-    Node* node1 = add_token_node("ID", TYPE_ID, "abc");
-    Node* node2 = add_token_node("INT", TYPE_INT, "123");
-    Node* node3 = add_token_node("FLOAT", TYPE_FLOAT, "123.3");
-    print_tree(node1, -1);
-    print_tree(node2, -1);
-    print_tree(node3, -1);
-    return 0;
-}
-*/
