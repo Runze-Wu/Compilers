@@ -220,5 +220,5 @@ void lexical_error_handler(char *msg){
 void add_token_node(const char* name, enum DATATYPE datatype, const char* val)
 {
     yylval.node = token_node(name, datatype, val);
-    if(yydebug) print_tree(yylval.node,-1);
+    // if(yydebug) print_tree(yylval.node,0);
 }
