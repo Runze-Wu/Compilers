@@ -70,7 +70,10 @@ ID [A-Za-z_][A-Za-z0-9_]*
             else if(c!='*') meet=0;
         }
     }
-    if(!flag) lexical_error_handler("unmatched comment");
+    if(!flag) lexical_error_handler("unmatched comment \"/*\"");
+}
+"*/" {
+    lexical_error_handler("unmatched comment \"*/\"");
 }
 <<EOF>> {
     return 0;
@@ -212,7 +215,7 @@ ID [A-Za-z_][A-Za-z0-9_]*
 %%
 void lexical_error_handler(char *msg){
     lexical_errs++;
-    printf("Error type A at Line %d: %s %s\n", yylineno, msg ,yytext);
+    printf("Error Type A at Line %d: %s %s\n", yylineno, msg ,yytext);
 }
 void add_token_node(const char* name, enum DATATYPE datatype, const char* val)
 {
