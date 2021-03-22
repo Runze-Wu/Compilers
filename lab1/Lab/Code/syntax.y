@@ -3,8 +3,9 @@
     #include "mytree.h"
     extern int syntax_errs;
     extern int yylineno;
+    extern char* yytext;
     void yyerror(const char *msg);
-    void my_yyerror(const char *msg, struct treenode* node);
+    void my_yyerror(const char *msg);
     int yylex();
     #define YYDEBUG 1
     extern struct treenode* root;
@@ -44,6 +45,7 @@
 %type <node> Exp
 %type <node> Args
 %start Program
+%type <node> error
 /* declared tokens */
 %token <node> INT FLOAT ID
 %token <node> SEMI COMMA DOT
@@ -63,6 +65,9 @@
 %right NOT
 %left  UMINUS /* 处理负号 */
 %left  DOT LP RP LB RB
+
+%nonassoc LOWER_THAN_CORRECT
+%nonassoc CORRECT
 
 %nonassoc LOWER_THAN_ELSE
 %nonassoc ELSE
@@ -94,6 +99,14 @@ ExtDef: Specifier ExtDecList SEMI {
         $$=nonterminal_node("ExtDef",@1.first_line);
         set_parent_brother($$,3,$1,$2,$3);
     }
+    // | Specifier ExtDecList error SEMI
+    // | error Specifier SEMI 
+    // | error ExtDecList SEMI 
+    // | Specifier FunDec error 
+    | error SEMI {yyerrok;}
+    | Specifier error SEMI {yyerrok;}
+    // | Specifier error {}
+    // | Specifier error CompSt {}
 ;
 ExtDecList: VarDec {
         $$=nonterminal_node("ExtDecList",@1.first_line);
@@ -103,6 +116,8 @@ ExtDecList: VarDec {
         $$=nonterminal_node("ExtDecList",@1.first_line);
         set_parent_brother($$,3,$1,$2,$3);
     }
+    | VarDec COMMA error {}
+    | error COMMA ExtDecList {}
 ;
 /* Specifiers */
 Specifier: TYPE {
@@ -145,6 +160,7 @@ VarDec: ID {
         $$=nonterminal_node("VarDec",@1.first_line);
         set_parent_brother($$,4,$1,$2,$3,$4);
     }
+    | VarDec LB error RB {my_yyerror(NULL);yyerrok;}
 ;
 FunDec: ID LP VarList RP {
         $$=nonterminal_node("FunDec",@1.first_line);
@@ -154,6 +170,9 @@ FunDec: ID LP VarList RP {
         $$=nonterminal_node("FunDec",@1.first_line);
         set_parent_brother($$,3,$1,$2,$3);
     }
+    | error LP RP {yyerrok;}
+    | error LP VarList RP {yyerrok;}
+    | ID LP error RP {yyerrok;}
     
 ;
 VarList: ParamDec COMMA VarList {
@@ -208,6 +227,14 @@ Stmt: Exp SEMI {
         $$=nonterminal_node("Stmt",@1.first_line);
         set_parent_brother($$,5,$1,$2,$3,$4,$5);
     }
+    | error 
+    | Exp error SEMI {yyerrok;}
+    | error SEMI {yyerrok;}
+    // | Exp error {}
+    | RETURN Exp error SEMI
+    | IF LP error RP Stmt  %prec LOWER_THAN_ELSE
+    | IF LP error RP Stmt ELSE Stmt
+    | WHILE LP error RP Stmt
 ;
 /* Local Definitions */
 DefList: Def DefList {
@@ -222,6 +249,8 @@ Def: Specifier DecList SEMI {
         $$=nonterminal_node("Def",@1.first_line);
         set_parent_brother($$,3,$1,$2,$3);
     }
+    | Specifier DecList error
+    | Specifier error SEMI {yyerrok;}
 ;
 DecList: Dec {
         $$=nonterminal_node("DecList",@1.first_line);
@@ -231,6 +260,8 @@ DecList: Dec {
         $$=nonterminal_node("DecList",@1.first_line);
         set_parent_brother($$,3,$1,$2,$3);
     }
+    // | Dec COMMA error DecList {yyerrok;}
+    | error COMMA DecList {yyerrok;}
 ;
 Dec: VarDec {
         $$=nonterminal_node("Dec",@1.first_line);
@@ -240,6 +271,9 @@ Dec: VarDec {
         $$=nonterminal_node("Dec",@1.first_line);
         set_parent_brother($$,3,$1,$2,$3);
     }
+    | error Dec {yyerrok;}
+    | error ASSIGNOP Exp {yyerrok;}
+    | VarDec ASSIGNOP error
 ;
 /* Expressions */
 Exp: Exp ASSIGNOP Exp {
@@ -314,6 +348,20 @@ Exp: Exp ASSIGNOP Exp {
         $$=nonterminal_node("Exp",@1.first_line);
         set_parent_brother($$,1,$1);
     }
+    | Exp ASSIGNOP error    
+    | Exp AND error         
+    | Exp OR error          
+    | Exp RELOP error       
+    | Exp PLUS error        
+    | Exp MINUS error      
+    | Exp STAR error        
+    | Exp DIV error         
+    | LP error RP          
+    | LP Exp error          
+    | MINUS error %prec UMINUS         
+    | NOT error        
+    | ID LP error RP        {yyerrok;}
+    | Exp LB error RB       {yyerrok;}
 ;
 Args: Exp COMMA Args {
         $$=nonterminal_node("Args",@1.first_line);
@@ -323,15 +371,17 @@ Args: Exp COMMA Args {
         $$=nonterminal_node("Args",@1.first_line);
         set_parent_brother($$,1,$1);
     }
+    | Exp COMMA error {my_yyerror(NULL);yyerrok;}
 ;
 %%
 
 #include "lex.yy.c"
 void yyerror(const char *msg) {
     syntax_errs++;
-    printf("Error type B at Line %d: %s\n",yylineno, msg);
+    // printf("\e[1;31mError Type B\e[0m at Line %d: syntax near \"%s\"\n",yylineno, yytext);
+    printf("Error Type B at Line %d: syntax error near \"%s\"\n",yylineno, yytext);
 }
-void my_yyerror(const char *msg, struct treenode* node) {
-    syntax_errs++;
-    printf("Error type B at Line %d: %s\n",node->line, msg);
+void my_yyerror(const char *msg) {
+    // syntax_errs++;
+    // printf("\e[1;32mError Type B\e[0m at Line %d: syntax near \"%s\"\n",yylineno, yytext);
 }
