@@ -52,19 +52,21 @@ struct treenode* token_node(const char* name, enum DATATYPE datatype, const char
     }
     return mynode;
 }
-struct treenode* nonterminal_node(const char* name, int line) {
+struct treenode* nonterminal_node(const char* name, int line, int node_num, ...) {
     struct treenode* mynode = (struct treenode*)malloc(sizeof(struct treenode));
     mynode->bro = NULL;
     mynode->child = NULL;
     mynode->line = line;
     mynode->tokenFlag = 0;
     sscanf(name, "%s", mynode->name);
+    va_list valist;
+    va_start(valist, node_num);
+    set_parent_brother(mynode, node_num, valist);
+    va_end(valist);
     return mynode;
 }
-void set_parent_brother(struct treenode* parent, int node_num, ...) {
-    va_list valist;
+void set_parent_brother(struct treenode* parent, int node_num, va_list valist) {
     int i = 0;
-    va_start(valist, node_num);
     struct treenode* node;
     for (; i < node_num; i++) {
         node = va_arg(valist, struct treenode*);

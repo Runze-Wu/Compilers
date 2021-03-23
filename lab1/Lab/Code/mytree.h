@@ -19,8 +19,9 @@ struct treenode {
 };
 void print_tree(struct treenode* mynode, int depth);  // 打印AST，depth表示深度
 struct treenode* token_node(const char* name, enum DATATYPE datatype,
-                            const char* val);                   // 添加终结符结点，说明类型和具体值
-struct treenode* nonterminal_node(const char* name, int line);  // 添加非终结符结点，说明名称，以及列值
+                            const char* val);  // 添加终结符结点，说明类型和具体值
+struct treenode* nonterminal_node(const char* name, int line, int node_num,
+                                  ...);  // 添加非终结符结点，说明名称，以及列值
 void set_parent_brother(struct treenode* parent, int node_num,
-                        ...);  // 设置父节点和兄弟节点，由于存在节点为空的情况，采用可变参数写法
+                        va_list valist);  // 设置父节点和兄弟节点，由于存在节点为空的情况，采用可变参数写法
 #endif
