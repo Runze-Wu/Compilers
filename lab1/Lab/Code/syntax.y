@@ -78,14 +78,14 @@ ExtDefList: ExtDef ExtDefList                       { $$=nonterminal_node("ExtDe
 ExtDef: Specifier ExtDecList SEMI                   { $$=nonterminal_node("ExtDef",@$.first_line,3,$1,$2,$3); }
     | Specifier SEMI                                { $$=nonterminal_node("ExtDef",@$.first_line,2,$1,$2); }
     | Specifier FunDec CompSt                       { $$=nonterminal_node("ExtDef",@$.first_line,3,$1,$2,$3); }
-    | error                                         { my_yyerror(); }
-    | error SEMI                                    { my_yyerror();yyerrok; }
-    | Specifier error SEMI                          { my_yyerror();yyerrok; }
+    | error                                         {}
+    | error SEMI                                    { yyerrok; }
+    | Specifier error SEMI                          { yyerrok; }
 ;               
 ExtDecList: VarDec                                  { $$=nonterminal_node("ExtDecList",@$.first_line,1,$1); }
     | VarDec COMMA ExtDecList                       { $$=nonterminal_node("ExtDecList",@$.first_line,3,$1,$2,$3); }
-    | VarDec error COMMA ExtDecList                 { my_yyerror(); }
-    | error COMMA ExtDecList                        { my_yyerror();yyerrok; }
+    | VarDec error COMMA ExtDecList                 {}
+    | error COMMA ExtDecList                        { yyerrok; }
 ;
 /* Specifiers */
 Specifier: TYPE                                     { $$=nonterminal_node("Specifier",@$.first_line,1,$1); }
@@ -93,7 +93,7 @@ Specifier: TYPE                                     { $$=nonterminal_node("Speci
 ;
 StructSpecifier: STRUCT OptTag LC DefList RC        { $$=nonterminal_node("StructSpecifier",@$.first_line,5,$1,$2,$3,$4,$5); }
     | STRUCT Tag                                    { $$=nonterminal_node("StructSpecifier",@$.first_line,2,$1,$2); }
-    | STRUCT OptTag LC DefList error RC             { my_yyerror();yyerrok; }
+    | STRUCT OptTag LC DefList error RC             { yyerrok; }
 ;   
 OptTag: ID                                          { $$=nonterminal_node("OptTag",@$.first_line,1,$1); }
     | /* empty */                                   { $$=NULL; }
@@ -103,14 +103,14 @@ Tag: ID                                             { $$=nonterminal_node("Tag",
 /* Declarators */
 VarDec: ID                                          { $$=nonterminal_node("VarDec",@$.first_line,1,$1); }
     | VarDec LB INT RB                              { $$=nonterminal_node("VarDec",@$.first_line,4,$1,$2,$3,$4); }
-    | VarDec LB error RB                            { my_yyerror();yyerrok; }
+    | VarDec LB error RB                            { yyerrok; }
 ;               
 FunDec: ID LP VarList RP                            { $$=nonterminal_node("FunDec",@$.first_line,4,$1,$2,$3,$4); }
     | ID LP RP                                      { $$=nonterminal_node("FunDec",@$.first_line,3,$1,$2,$3); }
-    | error RP                                      { my_yyerror();yyerrok; }
-    | error LP RP                                   { my_yyerror();yyerrok; }
-    | error LP VarList RP                           { my_yyerror(); }
-    | ID LP error RP                                { my_yyerror();yyerrok; }
+    | error RP                                      { yyerrok; }
+    | error LP RP                                   { yyerrok; }
+    | error LP VarList RP                           {}
+    | ID LP error RP                                { yyerrok; }
     
 ;
 VarList: ParamDec COMMA VarList                     { $$=nonterminal_node("VarList",@$.first_line,3,$1,$2,$3); }
@@ -130,32 +130,32 @@ Stmt: Exp SEMI                                      { $$=nonterminal_node("Stmt"
     | IF LP Exp RP Stmt %prec LOWER_THAN_ELSE       { $$=nonterminal_node("Stmt",@$.first_line,5,$1,$2,$3,$4,$5); }
     | IF LP Exp RP Stmt ELSE Stmt                   { $$=nonterminal_node("Stmt",@$.first_line,7,$1,$2,$3,$4,$5,$6,$7); }
     | WHILE LP Exp RP Stmt                          { $$=nonterminal_node("Stmt",@$.first_line,5,$1,$2,$3,$4,$5); }
-    | error                                         { my_yyerror(); }
-    | Exp error                                     { my_yyerror(); }
-    | Exp error SEMI                                { my_yyerror();yyerrok; }
-    | error SEMI                                    { my_yyerror();yyerrok; }
-    | RETURN Exp error SEMI                         { my_yyerror();yyerrok; }
-    | IF LP error RP Stmt                           { my_yyerror(); }
-    | IF LP error RP Stmt ELSE Stmt                 { my_yyerror(); }
-    | WHILE LP error RP Stmt                        { my_yyerror();yyerrok; }
+    | error                                         {}
+    | Exp error                                     {}
+    | Exp error SEMI                                { yyerrok; }
+    | error SEMI                                    { yyerrok; }
+    | RETURN Exp error SEMI                         { yyerrok; }
+    | IF LP error RP Stmt                           {}
+    | IF LP error RP Stmt ELSE Stmt                 {}
+    | WHILE LP error RP Stmt                        { yyerrok; }
 ;
 /* Local Definitions */
 DefList: Def DefList                                { $$=nonterminal_node("DefList",@$.first_line,2,$1,$2); }
     | /* empty */                                   { $$=NULL; }
 ;
 Def: Specifier DecList SEMI                         { $$=nonterminal_node("Def",@$.first_line,3,$1,$2,$3); }
-    | Specifier DecList error                       { my_yyerror(); }
-    | Specifier error SEMI                          { my_yyerror();yyerrok; }
+    | Specifier DecList error                       {}
+    | Specifier error SEMI                          { yyerrok; }
 ;
 DecList: Dec                                        { $$=nonterminal_node("DecList",@$.first_line,1,$1); }
     | Dec COMMA DecList                             { $$=nonterminal_node("DecList",@$.first_line,3,$1,$2,$3); }
-    | error COMMA DecList                           { my_yyerror();yyerrok; }
+    | error COMMA DecList                           { yyerrok; }
 ;
 Dec: VarDec                                         { $$=nonterminal_node("Dec",@$.first_line,1,$1); }
     | VarDec ASSIGNOP Exp                           { $$=nonterminal_node("Dec",@$.first_line,3,$1,$2,$3); }
-    | error Dec                                     { my_yyerror();yyerrok; }
-    | error ASSIGNOP Exp                            { my_yyerror();yyerrok; }
-    | VarDec ASSIGNOP error                         { my_yyerror(); }
+    | error Dec                                     { yyerrok; }
+    | error ASSIGNOP Exp                            { yyerrok; }
+    | VarDec ASSIGNOP error                         {}
 ;
 /* Expressions */
 Exp: Exp ASSIGNOP Exp                               { $$=nonterminal_node("Exp",@$.first_line,3,$1,$2,$3); }
@@ -176,24 +176,24 @@ Exp: Exp ASSIGNOP Exp                               { $$=nonterminal_node("Exp",
     | ID                                            { $$=nonterminal_node("Exp",@$.first_line,1,$1); }
     | INT                                           { $$=nonterminal_node("Exp",@$.first_line,1,$1); }
     | FLOAT                                         { $$=nonterminal_node("Exp",@$.first_line,1,$1); }
-    | Exp ASSIGNOP error                            { my_yyerror(); }  
-    | Exp AND error                                 { my_yyerror(); }    
-    | Exp OR error                                  { my_yyerror(); }    
-    | Exp RELOP error                               { my_yyerror(); }    
-    | Exp PLUS error                                { my_yyerror(); }    
-    | Exp MINUS error                               { my_yyerror(); }  
-    | Exp STAR error                                { my_yyerror(); }    
-    | Exp DIV error                                 { my_yyerror(); }    
-    | LP error RP                                   { my_yyerror();yyerrok; }   
-    | LP Exp error                                  { my_yyerror(); }    
-    | MINUS error %prec UMINUS                      { my_yyerror(); }           
-    | NOT error                                     { my_yyerror(); }  
-    | ID LP error RP                                { my_yyerror();yyerrok; }  
-    | Exp LB error RB                               { my_yyerror();yyerrok; }  
+    | Exp ASSIGNOP error                            {}  
+    | Exp AND error                                 {}    
+    | Exp OR error                                  {}    
+    | Exp RELOP error                               {}    
+    | Exp PLUS error                                {}    
+    | Exp MINUS error                               {}  
+    | Exp STAR error                                {}    
+    | Exp DIV error                                 {}    
+    | LP error RP                                   { yyerrok; }   
+    | LP Exp error                                  {}    
+    | MINUS error %prec UMINUS                      {}           
+    | NOT error                                     {}  
+    | ID LP error RP                                { yyerrok; }  
+    | Exp LB error RB                               { yyerrok; }  
 ;
 Args: Exp COMMA Args                                { $$=nonterminal_node("Args",@$.first_line,3,$1,$2,$3); }
     | Exp                                           { $$=nonterminal_node("Args",@$.first_line,1,$1); }
-    | Exp COMMA error                               { my_yyerror(); }
+    | Exp COMMA error                               {}
 ;
 %%
 
@@ -205,4 +205,9 @@ void yyerror(const char *msg) {
     // printf("\e[1;31mError Type B\e[0m at Line %d: syntax near \"%s\"\n",yylineno, yytext);
     printf("Error Type B at Line %d: syntax error near \"%s\"\n",yylineno, yytext);
 }
-void my_yyerror() {}
+void my_yyerror() {
+    if(yyerr_line==yylineno)return;
+    yyerr_line=yylineno;
+    // syntax_errs++;
+    // printf("myerr %d %s\n",yylineno,yytext);
+}
