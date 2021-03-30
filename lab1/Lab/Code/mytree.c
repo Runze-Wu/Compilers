@@ -15,7 +15,7 @@ void print_tree(struct treenode* mynode, int depth) {
                 printf(": %.6f", mynode->data.val_float);
                 break;
             case TYPE_INT:
-                printf(": %d", mynode->data.val_int);
+                printf(": %u", mynode->data.val_int);
                 break;
             default:
                 break;
@@ -45,8 +45,18 @@ struct treenode* token_node(const char* name, enum DATATYPE datatype, const char
             sscanf(val, "%f", &mynode->data.val_float);
             break;
         case TYPE_INT:
-            sscanf(val, "%d", &mynode->data.val_int);
+            sscanf(val, "%u", &mynode->data.val_int);
             break;
+        /*
+        case TYPE_OCT:
+            sscanf(val, "%o", &mynode->data.val_int);
+            mynode->datatype = TYPE_INT;
+            break;
+        case TYPE_HEX:
+            sscanf(val, "%x", &mynode->data.val_int);
+            mynode->datatype = TYPE_INT;
+            break;
+        */
         default:
             break;
     }
