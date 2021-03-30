@@ -6,13 +6,12 @@
     extern char* yytext;
     int yyerr_line=0;
     void yyerror(const char *msg);
-    void my_yyerror();
     int yylex();
     #define YYDEBUG 1
     extern struct treenode* root;
 %}
 /* declaration part */
-%define parse.error simple
+%define parse.error verbose
 %locations
 
 %union {
@@ -78,14 +77,13 @@ ExtDefList: ExtDef ExtDefList                       { $$=nonterminal_node("ExtDe
 ExtDef: Specifier ExtDecList SEMI                   { $$=nonterminal_node("ExtDef",@$.first_line,3,$1,$2,$3); }
     | Specifier SEMI                                { $$=nonterminal_node("ExtDef",@$.first_line,2,$1,$2); }
     | Specifier FunDec CompSt                       { $$=nonterminal_node("ExtDef",@$.first_line,3,$1,$2,$3); }
-    | error                                         {}
+    | error ExtDef                                  {} /* 以奇怪的东西开头 */
+    | Specifier error CompSt                        {}
     | error SEMI                                    { yyerrok; }
     | Specifier error SEMI                          { yyerrok; }
 ;               
 ExtDecList: VarDec                                  { $$=nonterminal_node("ExtDecList",@$.first_line,1,$1); }
     | VarDec COMMA ExtDecList                       { $$=nonterminal_node("ExtDecList",@$.first_line,3,$1,$2,$3); }
-    | VarDec error COMMA ExtDecList                 {}
-    | error COMMA ExtDecList                        { yyerrok; }
 ;
 /* Specifiers */
 Specifier: TYPE                                     { $$=nonterminal_node("Specifier",@$.first_line,1,$1); }
@@ -104,14 +102,15 @@ Tag: ID                                             { $$=nonterminal_node("Tag",
 VarDec: ID                                          { $$=nonterminal_node("VarDec",@$.first_line,1,$1); }
     | VarDec LB INT RB                              { $$=nonterminal_node("VarDec",@$.first_line,4,$1,$2,$3,$4); }
     | VarDec LB error RB                            { yyerrok; }
+    | VarDec LB INT error
 ;               
 FunDec: ID LP VarList RP                            { $$=nonterminal_node("FunDec",@$.first_line,4,$1,$2,$3,$4); }
     | ID LP RP                                      { $$=nonterminal_node("FunDec",@$.first_line,3,$1,$2,$3); }
-    | error RP                                      { yyerrok; }
-    | error LP RP                                   { yyerrok; }
-    | error LP VarList RP                           {}
+    | ID error LP RP                                { yyerrok; }
+    | ID error LP VarList RP                        {}
     | ID LP error RP                                { yyerrok; }
-    
+    | ID LP error                                   {} /* miss RP */
+    | ID LP VarList error                           {} /* miss RP */
 ;
 VarList: ParamDec COMMA VarList                     { $$=nonterminal_node("VarList",@$.first_line,3,$1,$2,$3); }
     | ParamDec                                      { $$=nonterminal_node("VarList",@$.first_line,1,$1); }
@@ -120,6 +119,7 @@ ParamDec: Specifier VarDec                          { $$=nonterminal_node("Param
 ;
 /* Statements */
 CompSt: LC DefList StmtList RC                      { $$=nonterminal_node("CompSt",@$.first_line,4,$1,$2,$3,$4); }
+    |   LC DefList StmtList error                   {}
 ;
 StmtList: Stmt StmtList                             { $$=nonterminal_node("StmtList",@$.first_line,2,$1,$2); }
     | /* empty */                                   { $$=NULL; }
@@ -129,12 +129,11 @@ Stmt: Exp SEMI                                      { $$=nonterminal_node("Stmt"
     | RETURN Exp SEMI                               { $$=nonterminal_node("Stmt",@$.first_line,3,$1,$2,$3); }
     | IF LP Exp RP Stmt %prec LOWER_THAN_ELSE       { $$=nonterminal_node("Stmt",@$.first_line,5,$1,$2,$3,$4,$5); }
     | IF LP Exp RP Stmt ELSE Stmt                   { $$=nonterminal_node("Stmt",@$.first_line,7,$1,$2,$3,$4,$5,$6,$7); }
-    | WHILE LP Exp RP Stmt                          { $$=nonterminal_node("Stmt",@$.first_line,5,$1,$2,$3,$4,$5); }
-    | error                                         {}
-    | Exp error                                     {}
+    | WHILE LP Exp RP Stmt                          { $$=nonterminal_node("Stmt",@$.first_line,5,$1,$2,$3,$4,$5); }                       
     | Exp error SEMI                                { yyerrok; }
     | error SEMI                                    { yyerrok; }
     | RETURN Exp error SEMI                         { yyerrok; }
+    | RETURN error SEMI                             { yyerrok; }
     | IF LP error RP Stmt                           {}
     | IF LP error RP Stmt ELSE Stmt                 {}
     | WHILE LP error RP Stmt                        { yyerrok; }
@@ -144,7 +143,7 @@ DefList: Def DefList                                { $$=nonterminal_node("DefLi
     | /* empty */                                   { $$=NULL; }
 ;
 Def: Specifier DecList SEMI                         { $$=nonterminal_node("Def",@$.first_line,3,$1,$2,$3); }
-    | Specifier DecList error                       {}
+    | Specifier DecList error SEMI                  { yyerrok; }
     | Specifier error SEMI                          { yyerrok; }
 ;
 DecList: Dec                                        { $$=nonterminal_node("DecList",@$.first_line,1,$1); }
@@ -155,7 +154,7 @@ Dec: VarDec                                         { $$=nonterminal_node("Dec",
     | VarDec ASSIGNOP Exp                           { $$=nonterminal_node("Dec",@$.first_line,3,$1,$2,$3); }
     | error Dec                                     { yyerrok; }
     | error ASSIGNOP Exp                            { yyerrok; }
-    | VarDec ASSIGNOP error                         {}
+    | VarDec ASSIGNOP error Exp                     {}
 ;
 /* Expressions */
 Exp: Exp ASSIGNOP Exp                               { $$=nonterminal_node("Exp",@$.first_line,3,$1,$2,$3); }
@@ -203,11 +202,5 @@ void yyerror(const char *msg) {
     yyerr_line=yylineno;
     syntax_errs++;
     // printf("\e[1;31mError Type B\e[0m at Line %d: syntax near \"%s\"\n",yylineno, yytext);
-    printf("Error Type B at Line %d: syntax error near \"%s\"\n",yylineno, yytext);
-}
-void my_yyerror() {
-    if(yyerr_line==yylineno)return;
-    yyerr_line=yylineno;
-    // syntax_errs++;
-    // printf("myerr %d %s\n",yylineno,yytext);
+    printf("Error type B at Line %d %s, near \"%s\".\n",yylineno,msg,yytext);
 }
