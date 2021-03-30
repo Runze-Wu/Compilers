@@ -49,7 +49,7 @@ WHILE while
 INT 0|([1-9]{DIGIT}*)
 OCT 0[0-7]*
 HEX 0[X|x][0-9a-fA-F]+
-FLOAT {INT}{DOT}{DIGIT}+
+FLOAT {DIGIT}+{DOT}{DIGIT}+
 BASE ({DOT}{DIGIT}+|{DIGIT}+{DOT}|{DIGIT}+{DOT}{DIGIT}+)
 EXPONENT {BASE}[Ee][+-]?{DIGIT}+
 ID [A-Za-z_][A-Za-z0-9_]*
@@ -72,7 +72,7 @@ ID [A-Za-z_][A-Za-z0-9_]*
     }
     if(!flag) lexical_error_handler("unmatched comment \"/*\"");
 }
-"*/"                                { lexical_error_handler("unmatched comment \"*/\""); }
+"*/"                                { lexical_error_handler("unmatched comment"); }
 <<EOF>>                             { return 0; }
     /* Inline Comments */
 "//" { BEGIN(INLINE_COMMENT); }
@@ -103,10 +103,12 @@ ID [A-Za-z_][A-Za-z0-9_]*
 {ELSE}                              { add_token_node("ELSE", OTHER, NULL);return (ELSE); }
 {WHILE}                             { add_token_node("WHILE", OTHER, NULL);return (WHILE); }
 {INT}                               { add_token_node("INT", TYPE_INT, yytext);return (INT); }
-{OCT}|{HEX}|(0{DIGIT}+)             { lexical_error_handler("illegal int");return (INT); }
 {FLOAT}                             { add_token_node("FLOAT", TYPE_FLOAT, yytext);return (FLOAT); }
-{EXPONENT}|({INT}\.)|(\.{INT})      { lexical_error_handler("illegal float");return (FLOAT); }
-
+{OCT}                               { /*add_token_node("INT", TYPE_OCT, yytext);*/lexical_error_handler("illegal int");return (INT); }
+{HEX}                               { /*add_token_node("INT", TYPE_HEX, yytext);*/lexical_error_handler("illegal int");return (INT); }
+{EXPONENT}                          { /*add_token_node("FLOAT", TYPE_FLOAT, yytext);*/lexical_error_handler("illegal float");return (FLOAT); }
+({INT}\.)|(\.{INT})                 { lexical_error_handler("illegal float");return (FLOAT); }
+(0{DIGIT}+)                         { lexical_error_handler("illegal int");return (INT); }
 {ID}                                { add_token_node("ID", TYPE_ID, yytext);return (ID); }
 "\n"                                { yycolumn = 1; }
 [\t\f\r\v ]	                        {}
@@ -114,7 +116,7 @@ ID [A-Za-z_][A-Za-z0-9_]*
 %%
 void lexical_error_handler(char *msg){
     lexical_errs++;
-    printf("Error Type A at Line %d: %s %s\n", yylineno, msg ,yytext);
+    printf("Error type A at Line %d: %s %s.\n", yylineno, msg ,yytext);
 }
 void add_token_node(const char* name, enum DATATYPE datatype, const char* val)
 {
