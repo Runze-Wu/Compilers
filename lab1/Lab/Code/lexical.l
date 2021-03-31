@@ -19,7 +19,6 @@ void add_token_node(const char* name, enum DATATYPE datatype, const char* val);
 
 %option yylineno
 /* Define names for regular expressions here. */
-DELIM [\t\f\r\v ;\n]
 DIGIT [0-9]
 SEMI ;
 COMMA ,
@@ -73,7 +72,6 @@ ID [A-Za-z_][A-Za-z0-9_]*
     if(!flag) lexical_error_handler("unmatched comment \"/*\"");
 }
 "*/"                                { lexical_error_handler("unmatched comment"); }
-<<EOF>>                             { return 0; }
     /* Inline Comments */
 "//" { BEGIN(INLINE_COMMENT); }
 <INLINE_COMMENT>[^\n]*              {}
@@ -110,6 +108,7 @@ ID [A-Za-z_][A-Za-z0-9_]*
 ({INT}\.)|(\.{INT})                 { lexical_error_handler("illegal float");return (FLOAT); }
 (0{DIGIT}+)                         { lexical_error_handler("illegal int");return (INT); }
 {ID}                                { add_token_node("ID", TYPE_ID, yytext);return (ID); }
+<<EOF>>                             { return 0; }
 "\n"                                { yycolumn = 1; }
 [\t\f\r\v ]	                        {}
 .                                   { lexical_error_handler("Mysterious characters"); }
