@@ -73,7 +73,7 @@ ID [A-Za-z_][A-Za-z0-9_]*
 }
 "*/"                                { lexical_error_handler("unmatched comment"); }
     /* Inline Comments */
-"//" { BEGIN(INLINE_COMMENT); }
+"//"                                { BEGIN(INLINE_COMMENT); }
 <INLINE_COMMENT>[^\n]*              {}
 <INLINE_COMMENT>\n                  { BEGIN(INITIAL); }
 {SEMI}                              { add_token_node("SEMI", OTHER, NULL);return (SEMI); }
@@ -102,9 +102,9 @@ ID [A-Za-z_][A-Za-z0-9_]*
 {WHILE}                             { add_token_node("WHILE", OTHER, NULL);return (WHILE); }
 {INT}                               { add_token_node("INT", TYPE_INT, yytext);return (INT); }
 {FLOAT}                             { add_token_node("FLOAT", TYPE_FLOAT, yytext);return (FLOAT); }
-{OCT}                               { /*add_token_node("INT", TYPE_OCT, yytext);*/lexical_error_handler("illegal int");return (INT); }
-{HEX}                               { /*add_token_node("INT", TYPE_HEX, yytext);*/lexical_error_handler("illegal int");return (INT); }
-{EXPONENT}                          { /*add_token_node("FLOAT", TYPE_FLOAT, yytext);*/lexical_error_handler("illegal float");return (FLOAT); }
+{OCT}                               { add_token_node("INT", TYPE_OCT, yytext);lexical_error_handler("illegal int");return (INT); }
+{HEX}                               { add_token_node("INT", TYPE_HEX, yytext);lexical_error_handler("illegal int");return (INT); }
+{EXPONENT}                          { add_token_node("FLOAT", TYPE_FLOAT, yytext);lexical_error_handler("illegal float");return (FLOAT); }
 ({INT}\.)|(\.{INT})                 { lexical_error_handler("illegal float");return (FLOAT); }
 (0{DIGIT}+)                         { lexical_error_handler("illegal int");return (INT); }
 {ID}                                { add_token_node("ID", TYPE_ID, yytext);return (ID); }
