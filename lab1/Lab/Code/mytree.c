@@ -47,7 +47,6 @@ struct treenode* token_node(const char* name, enum DATATYPE datatype, const char
         case TYPE_INT:
             sscanf(val, "%u", &mynode->data.val_int);
             break;
-        /*
         case TYPE_OCT:
             sscanf(val, "%o", &mynode->data.val_int);
             mynode->datatype = TYPE_INT;
@@ -56,7 +55,6 @@ struct treenode* token_node(const char* name, enum DATATYPE datatype, const char
             sscanf(val, "%x", &mynode->data.val_int);
             mynode->datatype = TYPE_INT;
             break;
-        */
         default:
             break;
     }
