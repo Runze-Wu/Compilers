@@ -31,23 +31,23 @@
 \section*{5.4.3}
 \begin{itemize}
 	\item[(1)]提取公因子,文法变为
-	\begin{equation}
-	\begin{aligned}
-		B \rightarrow\quad &B_{1} A\ \{B.val=2\times B_1.val+A.val\}\\
-		  |\quad &1\ \{B.val=1\}\\
-		A \rightarrow\quad &0\ \{A.val=0\}\\
-		  |\quad &1\ \{A.val=1\}
-	\end{aligned}
-	\end{equation}
+	      \begin{equation}
+		      \begin{aligned}
+			      B \rightarrow\quad & B_{1} A\ \{B.val=2\times B_1.val+A.val\} \\
+			      |\quad             & 1\ \{B.val=1\}                           \\
+			      A \rightarrow\quad & 0\ \{A.val=0\}                           \\
+			      |\quad             & 1\ \{A.val=1\}
+		      \end{aligned}
+	      \end{equation}
 	\item[(2)]去除左递归,文法变为
-	\begin{equation}
-	\begin{aligned}
-		B \rightarrow\quad &1\ \{C.inh=1\}\ C\ \{B.val=C.val\}\\
-		C \rightarrow\quad &A\ \{C_1.inh=2\times C.inh+A.val\}\ C_1\ \{C.val=C_1.val\}\\
-		|\quad &\epsilon\ \{C.val=C.inh\}\\
-		A \rightarrow\quad &0\ \{A.val=0\}\\
-		|\quad &1\ \{A.val=1\}
-	\end{aligned}
-	\end{equation}
+	      \begin{equation}
+		      \begin{aligned}
+			      B \rightarrow\quad & 1\ \{C.inh=1\}\ C\ \{B.val=C.val\}                         \\
+			      C \rightarrow\quad & A\ \{C_1.inh=2\times C.inh+A.val\}\ C_1\ \{C.val=C_1.val\} \\
+			      |\quad             & \epsilon\ \{C.val=C.inh\}                                  \\
+			      A \rightarrow\quad & 0\ \{A.val=0\}                                             \\
+			      |\quad             & 1\ \{A.val=1\}
+		      \end{aligned}
+	      \end{equation}
 \end{itemize}
 \end{document}
