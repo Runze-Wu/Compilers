@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define HASHTABLE_SIZE 0x3fff
 typedef struct Type_* Type;
@@ -42,5 +43,5 @@ struct HashNode_ {
 void init_hashtable();               // initialize the hashtable
 unsigned int hash(char* name);       // hash function
 void insert_field(FieldList field);  // insert filed to hashtable
-int look_up(char* name);             // look up the item, if find return the index
+FieldList look_up(char* name);       // look up the item, if find return the index
 #endif

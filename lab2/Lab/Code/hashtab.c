@@ -11,14 +11,27 @@ unsigned int hash(char* name) {
         val = (val << 2) + *name;
         if (i = val & ~HASHTABLE_SIZE) val = (val ^ (i >> 12)) & HASHTABLE_SIZE;
     }
+    assert(val < HASHTABLE_SIZE);
     return val;
 }
+
 void insert_field(FieldList field) {
-    int pos = hash(field->name);
+    unsigned int pos = hash(field->name);
     HashNode node = (HashNode)malloc(sizeof(struct HashNode_));
     assert(node != NULL);  // out of memory
     node->data = field;
     node->link = hashtable[pos];
     hashtable[pos] = node;
 }
-int look_up(char* name);  // look up the item, if find return the index
+
+FieldList look_up(char* name) {
+    unsigned int pos = hash(name);
+    HashNode node = hashtable[pos];
+    while (node != NULL) {
+        if (strcmp(node->data->name, name) == 0) {
+            return node->data;
+        }
+        node = node->link;
+    }
+    return NULL;
+}
