@@ -8,14 +8,14 @@
     void yyerror(const char *msg);
     int yylex();
     #define YYDEBUG 1
-    extern struct treenode* root;
+    extern Node root;
 %}
 /* declaration part */
 %define parse.error verbose
 %locations
 
 %union {
-    struct treenode* node;
+    Node node;
 }
 /* High-level Definitions */
 %type <node> Program

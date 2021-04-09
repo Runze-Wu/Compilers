@@ -1,5 +1,5 @@
 #include "mytree.h"
-void print_tree(struct treenode* mynode, int depth) {
+void print_tree(Node mynode, int depth) {
     if (mynode == NULL) return;
     for (int i = 0; i < depth; i++) printf("  ");
     printf("%s", mynode->name);
@@ -27,8 +27,8 @@ void print_tree(struct treenode* mynode, int depth) {
     print_tree(mynode->child, depth + 1);
     print_tree(mynode->bro, depth);
 }
-struct treenode* token_node(const char* name, enum DATATYPE datatype, const char* val) {
-    struct treenode* mynode = (struct treenode*)malloc(sizeof(struct treenode));
+Node token_node(const char* name, enum DATATYPE datatype, const char* val) {
+    Node mynode = (Node)malloc(sizeof(struct treenode_));
     mynode->tokenFlag = 1;
     mynode->bro = NULL;
     mynode->child = NULL;
@@ -60,8 +60,8 @@ struct treenode* token_node(const char* name, enum DATATYPE datatype, const char
     }
     return mynode;
 }
-struct treenode* nonterminal_node(const char* name, int line, int node_num, ...) {
-    struct treenode* mynode = (struct treenode*)malloc(sizeof(struct treenode));
+Node nonterminal_node(const char* name, int line, int node_num, ...) {
+    Node mynode = (Node)malloc(sizeof(struct treenode_));
     mynode->bro = NULL;
     mynode->child = NULL;
     mynode->line = line;
@@ -73,16 +73,16 @@ struct treenode* nonterminal_node(const char* name, int line, int node_num, ...)
     va_end(valist);
     return mynode;
 }
-void set_parent_brother(struct treenode* parent, int node_num, va_list valist) {
+void set_parent_brother(Node parent, int node_num, va_list valist) {
     int i = 0;
-    struct treenode* node;
+    Node node;
     for (; i < node_num; i++) {
-        node = va_arg(valist, struct treenode*);
+        node = va_arg(valist, Node);
         if (node != NULL) break;
     }
     ++i;
     parent->child = node;
     for (; i < node_num; i++) {
-        if ((node->bro = va_arg(valist, struct treenode*)) != NULL) node = node->bro;
+        if ((node->bro = va_arg(valist, Node)) != NULL) node = node->bro;
     }
 }

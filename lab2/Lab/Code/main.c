@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-#include "mytree.h"
+#include "semant.h"
 #include "syntax.tab.h"
 
 FILE *yyin;                        // This is the file pointer from which the lexer reads its input.
@@ -8,7 +8,7 @@ int lexical_errs = 0;              // 出现的词法错误
 int syntax_errs = 0;               // 出现的语法错误
 extern int yydebug;                // bison debug mode
 YYSTYPE yylval;                    // 存储终结符的语义值
-struct treenode *root;             // AST语法树的根结点
+Node root;                         // AST语法树的根结点
 int yylex();                       // 词法分析的接口
 int yyparse(void);                 // 语法分析的接口
 void yyrestart(FILE *input_file);  // 将yyin指针重置
@@ -31,7 +31,8 @@ int main(int argc, char **argv) {
         if (yydebug) printf("totally meet %d lexical errors and %d syntax errors\n", lexical_errs, syntax_errs);
     } else {
         /* Print the AST tree */
-        print_tree(root, 0);
+        // print_tree(root, 0);
+        Program(root);
     }
     return 0;
 }
