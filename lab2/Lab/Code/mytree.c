@@ -24,14 +24,15 @@ void print_tree(Node mynode, int depth) {
         printf(" (%d)", mynode->line);
     }
     printf("\n");
-    print_tree(mynode->child, depth + 1);
-    print_tree(mynode->bro, depth);
+    if (mynode->tokenFlag == 0) {
+        for (int i = 0; i < mynode->child_num; i++) {
+            print_tree(mynode->childs[i], depth + 1);
+        }
+    }
 }
 Node token_node(const char* name, enum DATATYPE datatype, const char* val) {
     Node mynode = (Node)malloc(sizeof(struct treenode_));
     mynode->tokenFlag = 1;
-    mynode->bro = NULL;
-    mynode->child = NULL;
     mynode->datatype = datatype;
     sscanf(name, "%s", mynode->name);
     switch (mynode->datatype) {
@@ -62,27 +63,22 @@ Node token_node(const char* name, enum DATATYPE datatype, const char* val) {
 }
 Node nonterminal_node(const char* name, int line, int node_num, ...) {
     Node mynode = (Node)malloc(sizeof(struct treenode_));
-    mynode->bro = NULL;
-    mynode->child = NULL;
+    for (int i = 0; i < MAX_CHILD_NODES; i++) {
+        mynode->childs[i] = NULL;
+    }
     mynode->line = line;
     mynode->tokenFlag = 0;
+    mynode->child_num = node_num;
     sscanf(name, "%s", mynode->name);
     va_list valist;
     va_start(valist, node_num);
-    set_parent_brother(mynode, node_num, valist);
+    for (int i = 0; i < node_num; i++) {
+        mynode->childs[i] = va_arg(valist, Node);
+    }
     va_end(valist);
     return mynode;
 }
-void set_parent_brother(Node parent, int node_num, va_list valist) {
-    int i = 0;
-    Node node;
-    for (; i < node_num; i++) {
-        node = va_arg(valist, Node);
-        if (node != NULL) break;
-    }
-    ++i;
-    parent->child = node;
-    for (; i < node_num; i++) {
-        if ((node->bro = va_arg(valist, Node)) != NULL) node = node->bro;
-    }
+Node get_child(Node mynode, int child_idx) {
+    if (child_idx >= mynode->child_num) return NULL;
+    return mynode->childs[child_idx];
 }
