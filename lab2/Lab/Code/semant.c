@@ -4,12 +4,14 @@ extern int semantic_debug;
 void Program(Node root) {
     if (root == NULL) return;
     // print_tree(root, 0);
+    // Program -> ExtDefList
     dump_node(root);
     assert(root->child_num == 1);
     ExtDefList(get_child(root, 0));
 }
 void ExtDefList(Node root) {
     if (root == NULL) return;
+    // ExtDefList -> ExtDef ExtDefList
     dump_node(root);
     assert(root->child_num == 2);
     ExtDef(get_child(root, 0));
@@ -20,6 +22,7 @@ void ExtDef(Node root) {
     dump_node(root);
     assert(root->child_num == 2 || root->child_num == 3);
     Type type = Specifier(get_child(root, 0));
+    // if (type == NULL) return;
     if (strcmp(get_child(root, 1)->name, "ExtDecList") == 0) {  // ExtDef -> Specifier ExtDecList SEMI
         ExtDecList(get_child(root, 1), type);
     } else if (strcmp(get_child(root, 1)->name, "FunDec") == 0) {  // ExtDef -> Specifier FunDec CompSt
@@ -48,12 +51,15 @@ Type Specifier(Node root) {
     if (strcmp(get_child(root, 0)->name, "TYPE") == 0) {  // Specifier -> TYPE
         type = (Type)malloc(sizeof(struct Type_));
         type->kind = BASIC;
-        if (get_child(root, 0)->datatype == TYPE_INT) {
+        if (strcmp(get_child(root, 0)->val, "int") == 0) {
             type->u.basic = NUM_INT;
-        } else if (get_child(root, 0)->datatype == TYPE_FLOAT) {  // Specifier -> StructSpecifier
+        } else if (strcmp(get_child(root, 0)->val, "float") == 0) {
             type->u.basic = NUM_FLOAT;
+        } else {
+            dump_node(get_child(root, 0));
+            assert(0);
         }
-    } else if (strcmp(get_child(root, 0)->name, "StructSpecifier") == 0) {
+    } else if (strcmp(get_child(root, 0)->name, "StructSpecifier") == 0) {  // Specifier -> StructSpecifier
         type = StructSpecifier(get_child(root, 0));
     }
     return type;
@@ -61,6 +67,7 @@ Type Specifier(Node root) {
 Type StructSpecifier(Node root) {
     if (root == NULL) return NULL;
     Type type = NULL;
+    FieldList field = NULL;
     dump_node(root);
     assert(root->child_num == 2 || root->child_num == 5);
     if (root->child_num == 5) {  // StructSpecifier -> STRUCT OptTag LC DefList RC
@@ -71,39 +78,38 @@ Type StructSpecifier(Node root) {
                 return NULL;
             }
         }
-        FieldList field = (FieldList)malloc(sizeof(struct FieldList_));
+        field = (FieldList)malloc(sizeof(struct FieldList_));
         field->name = opt_tag;
         field->type = (Type)malloc(sizeof(struct Type_));
         field->type->kind = STRUCTTAG;
         field->type->u.member = NULL;
         DefList(get_child(root, 3), field);
         if (opt_tag != NULL) insert_field(field);
-        // printf("find %s %p\n", opt_tag, look_up(opt_tag));
-        type = (Type)malloc(sizeof(struct Type_));
-        type->kind = STRUCTURE;
-        type->u.structure = field;
+        dump_field(field);
 
     } else if (root->child_num == 2) {  // StructSpecifier -> STRUCT TAG
         char* tag = Tag(get_child(root, 1));
-        FieldList res = look_up(tag);
-        if (res == NULL) {
+        field = look_up(tag);
+        if (field == NULL) {
             dump_semantic_error(17, root->line, "Undefined structure", tag);
             return NULL;
         }
-        type = (Type)malloc(sizeof(struct Type_));
-        type->kind = STRUCTURE;
-        type->u.structure = res;
     }
+    type = (Type)malloc(sizeof(struct Type_));
+    type->kind = STRUCTURE;
+    type->u.structure = field;
     return type;
 }
 char* OptTag(Node root) {
     if (root == NULL) return NULL;
+    // OptTag -> ID
     dump_node(root);
     assert(root->child_num == 1);
     return get_child(root, 0)->val;
 }
 char* Tag(Node root) {
     if (root == NULL) return NULL;
+    // Tag -> ID
     dump_node(root);
     assert(root->child_num == 1);
     return get_child(root, 0)->val;
@@ -126,14 +132,16 @@ FieldList VarDec(Node root, Type type, FieldList field) {
             var_field = (FieldList)malloc(sizeof(struct FieldList_));
             var_field->name = ID;
             var_field->type = type;
+            var_field->tail = NULL;
             insert_field(var_field);
+            dump_field(var_field);
         }
     } else if (root->child_num == 4) {  // VarDec -> VarDec LB INT RB
         Type array_type = (Type)malloc(sizeof(struct Type_));
         array_type->kind = ARRAY;
         array_type->u.array.size = get_child(root, 2)->data.val_int;
         array_type->u.array.elem = type;
-        return VarDec(root, array_type, field);
+        return VarDec(get_child(root, 0), array_type, field);
     }
     return var_field;
 }
@@ -155,8 +163,10 @@ void FunDec(Node root, Type type) {
     field->type->u.function.ret = type;
     if (root->child_num == 3) {         // FunDec -> ID LP RP
     } else if (root->child_num == 4) {  // FunDec -> ID LP VarList RP
-        VarList(get_child(root, 2), field->type->u.function.argv);
+        VarList(get_child(root, 2), field);
     }
+    insert_field(field);
+    dump_field(field);
 }
 void VarList(Node root, FieldList field) {
     if (root == NULL) return;
@@ -241,12 +251,12 @@ void Def(Node root, FieldList field) {
 void DecList(Node root, Type type, FieldList field) {
     if (root == NULL) return;
     dump_node(root);
-    assert(root->child_num == 1 || root->child_num);
+    assert(root->child_num == 1 || root->child_num == 3);
     if (root->child_num == 1) {  // DecList -> Dec
         Dec(get_child(root, 0), type, field);
     } else if (root->child_num == 3) {  // DecList -> Dec COMMA DecList
         Dec(get_child(root, 0), type, field);
-        Dec(get_child(root, 2), type, field);
+        DecList(get_child(root, 2), type, field);
     }
 }
 void Dec(Node root, Type type, FieldList field) {
@@ -281,6 +291,7 @@ Type Exp(Node root) {
     if (root->child_num == 1) {
         if (strcmp(get_child(root, 0)->name, "ID") == 0) {  // Exp -> ID
             result = look_up(get_child(root, 0)->val);
+            dump_field(result);
             if (result == NULL) {
                 dump_semantic_error(1, root->line, "Undefined variable", get_child(root, 0)->val);
             } else {
@@ -289,9 +300,9 @@ Type Exp(Node root) {
         } else {
             type = (Type)malloc(sizeof(struct Type_));
             type->kind = BASIC;
-            if (strcmp(get_child(root, 0)->name, "INT") == 0) {  // Exp -> INT
+            if (get_child(root, 0)->datatype == TYPE_INT) {  // Exp -> INT
                 type->u.basic = NUM_INT;
-            } else if (strcmp(get_child(root, 0)->name, "FLOAT") == 0) {  // Exp -> FLOAT
+            } else if (get_child(root, 0)->datatype == TYPE_FLOAT) {  // Exp -> FLOAT
                 type->u.basic = NUM_FLOAT;
             }
         }
@@ -307,7 +318,7 @@ Type Exp(Node root) {
         } else if (strcmp(get_child(root, 0)->name, "ID") == 0) {  // Exp -> ID LP RP
             result = look_up(get_child(root, 0)->val);
             if (result == NULL) {
-                dump_semantic_error(2, root->line, "Undefined function", get_child(root, 0)->val);
+                dump_semantic_error(2, root->line, "Undefined function", get_child(root, 0)->name);
             } else if (result != NULL && result->type->kind != FUNCTION) {
                 dump_semantic_error(11, root->line, "Not a function", get_child(root, 0)->val);
             } else if (args_matched(NULL, result->type->u.function.argv) == 0) {
@@ -334,8 +345,8 @@ Type Exp(Node root) {
                 if (!have_mem) {
                     dump_semantic_error(14, root->line, "Non-existent field", mem_name);
                 } else {
-                    printf("member type %d\n", member_point->type->kind);
                     type = member_point->type;
+                    dump_type(type);
                 }
             }
         } else if (strcmp(get_child(root, 1)->name, "ASSIGNOP") == 0) {  // Exp ASSIGNOP Exp
@@ -364,12 +375,14 @@ Type Exp(Node root) {
              */
             type = Exp(get_child(root, 0));
             Type type_right = Exp(get_child(root, 2));
+
             if (type != NULL && type_right != NULL && (type->kind != BASIC || type_matched(type, type_right) == 0)) {
                 dump_semantic_error(7, root->line, "Type mismatched for operands", NULL);
+                printf("left %d right %d matched %d\n", type->kind, type_right->kind, type_matched(type, type_right));
             }
         }
     } else if (root->child_num == 4) {
-        if (strcmp(get_child(root, 0)->name, "ID")) {  // Exp -> ID LP Args RP
+        if (strcmp(get_child(root, 0)->name, "ID") == 0) {  // Exp -> ID LP Args RP
             result = look_up(get_child(root, 0)->val);
             if (result == NULL) {
                 dump_semantic_error(2, root->line, "Undefined function", get_child(root, 0)->val);
@@ -385,7 +398,7 @@ Type Exp(Node root) {
                     type = result->type->u.function.ret;
                 }
             }
-        } else if (strcmp(get_child(root, 0)->name, "Exp")) {  // Exp -> Exp LB Exp RB
+        } else if (strcmp(get_child(root, 0)->name, "Exp") == 0) {  // Exp -> Exp LB Exp RB
             Type type1 = Exp(get_child(root, 0));
             if (type1 != NULL && type1->kind != ARRAY) {
                 dump_semantic_error(10, root->line, "Not an array", get_child(root, 0)->val);
@@ -402,12 +415,10 @@ FieldList Args(Node root) {
     if (root == NULL) return NULL;
     dump_node(root);
     assert(root->child_num == 1 || root->child_num == 3);
+    Type args_type = Exp(get_child(root, 0));
+    if (args_type == NULL) return NULL;
     FieldList args = (FieldList)malloc(sizeof(struct FieldList_));
-    args->type = Exp(get_child(root, 0));
-    if (args->type == NULL) {
-        free(args);
-        return NULL;
-    }
+    args->type = args_type;
     args->tail = NULL;
     if (root->child_num == 1) {         // Args -> Exp
     } else if (root->child_num == 3) {  // Args -> Exp COMMA Args
@@ -460,32 +471,79 @@ bool args_matched(FieldList act_args, FieldList form_args) {
 }
 
 void add_struct_member(Node member, Type mem_type, FieldList struct_field) {
+    assert(struct_field != NULL);
     FieldList mem_field = VarDec(member, mem_type, struct_field);
+    FieldList temp_field = struct_field->type->u.member;
     if (mem_field == NULL) return;
     if (struct_field->type->u.member == NULL) {
         struct_field->type->u.member = mem_field;
     } else {
-        FieldList temp_field = struct_field->type->u.member;
         while (temp_field->tail != NULL) temp_field = temp_field->tail;
         temp_field->tail = mem_field;
     }
 }
 
 void add_func_parameter(Node param, FieldList func_field) {
+    assert(func_field != NULL);
     func_field->type->u.function.argc++;
     FieldList arg_field = ParamDec(param);
+    FieldList temp_field = func_field->type->u.function.argv;
     if (arg_field == NULL) return;
     if (func_field->type->u.function.argv == NULL) {
         func_field->type->u.function.argv = arg_field;
     } else {
-        FieldList temp_field = func_field->type->u.function.argv;
         while (temp_field->tail != NULL) temp_field = temp_field->tail;
         temp_field->tail = arg_field;
     }
 }
 
+void dump_type(Type type) {
+    if (semantic_debug == 0 || type == NULL) return;
+    FieldList field;
+    switch (type->kind) {
+        case BASIC:
+            printf(" BASIC kind: ");
+            if (type->u.basic == 0)
+                printf("NUM_INT\n");
+            else
+                printf("NUM_FLOAT\n");
+            break;
+        case ARRAY:
+            printf(" ARRAY\n");
+            break;
+        case STRUCTURE:
+            printf(" structure is:\n");
+            dump_field(type->u.structure);
+            break;
+        case STRUCTTAG:
+            printf(" STRUCTTAG\n");
+            field = type->u.member;
+            while (field != NULL) {
+                dump_field(field);
+                field = field->tail;
+            }
+            break;
+        case FUNCTION:
+            printf(" FUNCTION\n");
+            break;
+        default:
+            printf("\n");
+            break;
+    }
+}
+
+void dump_field(FieldList field) {
+    if (semantic_debug == 0 || field == NULL) return;
+    printf("field name: %s type:", field->name);
+    dump_type(field->type);
+}
+
 void dump_node(Node node) {
-    if (semantic_debug) printf("Node %s child_num %d\n", node->name, node->child_num);
+    if (semantic_debug == 0) return;
+    if (node->tokenFlag == 0)
+        printf("Node %s child_num %d\n", node->name, node->child_num);
+    else
+        print_tree(node, 0);
 }
 
 void dump_semantic_error(int err_type, int err_line, char* err_msg, char* err_elm) {

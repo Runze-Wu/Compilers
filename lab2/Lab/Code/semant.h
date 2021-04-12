@@ -36,6 +36,8 @@ bool args_matched(FieldList act_args,
 void add_struct_member(Node member, Type mem_type, FieldList struct_field);
 void add_func_parameter(Node param, FieldList func_field);
 
+void dump_type(Type type);         // show the type, use for debug
+void dump_field(FieldList field);  // show the field, use for debug
 void dump_node(Node node);
 void dump_semantic_error(int err_type, int err_line, char* err_msg, char* err_elm);
 #endif
