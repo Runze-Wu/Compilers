@@ -35,6 +35,7 @@ Node token_node(const char* name, enum DATATYPE datatype, const char* val) {
     mynode->tokenFlag = 1;
     mynode->datatype = datatype;
     sscanf(name, "%s", mynode->name);
+    if (val) sscanf(val, "%s", mynode->val);
     switch (mynode->datatype) {
         case TYPE_ID:
             sscanf(val, "%s", mynode->data.var_ID);
@@ -79,6 +80,6 @@ Node nonterminal_node(const char* name, int line, int node_num, ...) {
     return mynode;
 }
 Node get_child(Node mynode, int child_idx) {
-    if (child_idx >= mynode->child_num) return NULL;
+    assert(child_idx < mynode->child_num);
     return mynode->childs[child_idx];
 }
