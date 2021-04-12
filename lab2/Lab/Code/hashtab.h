@@ -2,6 +2,7 @@
 #define __HASHTAB_H__
 
 #include <assert.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -15,13 +16,13 @@ HashNode hashtable[HASHTABLE_SIZE];
 struct Type_ {
     enum { BASIC, ARRAY, STRUCTURE, STRUCTTAG, FUNCTION } kind;
     union {
-        enum { NUM_INT, NUM_FLOAT } basic;  // 基本类型unc
+        enum { NUM_INT, NUM_FLOAT } basic;  // 基本类型
         struct {
             Type elem;
             int size;
         } array;              // 数组类型信息包括元素类型与数组大小构成
-        FieldList structure;  // 结构体类型信息是一个链表
-        FieldList tag;        // 结构类型变量
+        FieldList structure;  // point to a struct definition
+        FieldList member;     // struct definition
         struct {
             int argc;  // number of arguments
             FieldList argv;
