@@ -323,10 +323,11 @@ Type Exp(Node root) {
         } else if (strcmp(get_child(root, 0)->name, "ID") == 0) {  // Exp -> ID LP RP
             result = look_up(get_child(root, 0)->val);
             if (result == NULL) {
-                dump_semantic_error(2, root->line, "Undefined function", get_child(root, 0)->name);
+                dump_semantic_error(2, root->line, "Undefined function", get_child(root, 0)->val);
             } else if (result != NULL && result->type->kind != FUNCTION) {
                 dump_semantic_error(11, root->line, "Not a function", get_child(root, 0)->val);
             } else if (args_matched(NULL, result->type->u.function.argv) == 0) {
+                type = result->type->u.function.ret;
                 dump_semantic_error(9, root->line, "Function is not appicable for arguments", get_child(root, 0)->val);
             } else {
                 type = result->type->u.function.ret;
@@ -402,13 +403,13 @@ Type Exp(Node root) {
             Type type1 = Exp(get_child(root, 0));
             if (type1 == NULL) {
             } else if (type1->kind != ARRAY) {
-                dump_semantic_error(10, root->line, "Not an array", get_child(root, 0)->val);
+                dump_semantic_error(10, root->line, "Not an array", NULL);
             } else {
                 type = type1->u.array.elem;
             }
             Type type2 = Exp(get_child(root, 2));
             if (type2 != NULL && (type2->kind != BASIC || type2->u.basic != NUM_INT)) {
-                dump_semantic_error(12, root->line, "Not an integer", get_child(root, 0)->val);
+                dump_semantic_error(12, root->line, "Not an integer", NULL);
             }
         }
     }
