@@ -324,12 +324,12 @@ Type Exp(Node root) {
             result = look_up(get_child(root, 0)->val);
             if (result == NULL) {
                 dump_semantic_error(2, root->line, "Undefined function", get_child(root, 0)->val);
-            } else if (result != NULL && result->type->kind != FUNCTION) {
+            } else if (result->type->kind != FUNCTION) {
                 dump_semantic_error(11, root->line, "Not a function", get_child(root, 0)->val);
             } else if (args_matched(NULL, result->type->u.function.argv) == 0) {
-                type = result->type->u.function.ret;
                 dump_semantic_error(9, root->line, "Function is not appicable for arguments", get_child(root, 0)->val);
-            } else {
+            }
+            if (result != NULL && result->type->kind == FUNCTION) {
                 type = result->type->u.function.ret;
             }
         } else if (strcmp(get_child(root, 1)->name, "DOT") == 0) {  // Exp -> Exp DOT ID
@@ -353,14 +353,13 @@ Type Exp(Node root) {
             dump_type(type, 0);
             dump_type(type_right, 0);
             if (type == NULL) {
-            } else if ((node_left->child_num == 1 && strcmp(get_child(node_left, 0)->name, "ID") == 0) ||
-                       (node_left->child_num == 3 && strcmp(get_child(node_left, 1)->name, "DOT") == 0) ||
-                       (node_left->child_num == 4 && strcmp(get_child(node_left, 0)->name, "Exp") == 0)) {
-                if (type_matched(type, type_right) == 0) {
-                    dump_semantic_error(5, root->line, "Type mismatched for assignment", NULL);
-                }
-            } else {
+            } else if (!((node_left->child_num == 1 && strcmp(get_child(node_left, 0)->name, "ID") == 0) ||
+                         (node_left->child_num == 3 && strcmp(get_child(node_left, 1)->name, "DOT") == 0) ||
+                         (node_left->child_num == 4 && strcmp(get_child(node_left, 0)->name, "Exp") == 0))) {
                 dump_semantic_error(6, root->line, "The left-hand side of an assignment must be a variable", NULL);
+            }
+            if (type_matched(type, type_right) == 0) {
+                dump_semantic_error(5, root->line, "Type mismatched for assignment", NULL);
             }
         } else {
             /**
@@ -375,7 +374,7 @@ Type Exp(Node root) {
             type = Exp(get_child(root, 0));
             Type type_right = Exp(get_child(root, 2));
 
-            if (type != NULL && type_right != NULL && (type->kind != BASIC || type_matched(type, type_right) == 0)) {
+            if (type_matched(type, type_right) == 0) {
                 dump_semantic_error(7, root->line, "Type mismatched for operands", NULL);
                 dump_type(type, 0);
                 dump_type(type_right, 0);
