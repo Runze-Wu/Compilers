@@ -352,7 +352,7 @@ Type Exp(Node root) {
             Type type_right = Exp(get_child(root, 2));
             dump_type(type, 0);
             dump_type(type_right, 0);
-            if (type == NULL || type_right == NULL) {
+            if (type == NULL) {
             } else if ((node_left->child_num == 1 && strcmp(get_child(node_left, 0)->name, "ID") == 0) ||
                        (node_left->child_num == 3 && strcmp(get_child(node_left, 1)->name, "DOT") == 0) ||
                        (node_left->child_num == 4 && strcmp(get_child(node_left, 0)->name, "Exp") == 0)) {
