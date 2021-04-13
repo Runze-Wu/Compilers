@@ -122,8 +122,8 @@ FieldList VarDec(Node root, Type type, FieldList field) {
         var_field = (FieldList)malloc(sizeof(struct FieldList_));
         var_field->type = type;  // 冲突与否，都会返回其Type
         var_field->tail = NULL;
-        var_field->name = NULL;
         char* ID = get_child(root, 0)->val;
+        var_field->name = ID;
         if (look_up(ID) != NULL) {
             if (field != NULL && field->type->kind == STRUCTTAG) {
                 if (have_member(field, ID) != NULL)
@@ -134,7 +134,6 @@ FieldList VarDec(Node root, Type type, FieldList field) {
                 dump_semantic_error(3, root->line, "Redefined variable", ID);
             }
         } else {
-            var_field->name = ID;
             insert_field(var_field);
             if (field == NULL) dump_field(var_field, 0);
         }
@@ -274,6 +273,7 @@ void Dec(Node root, Type type, FieldList field) {
         }
     } else if (root->child_num == 3) {  // VarDec ASSIGNOP Exp
         if (field != NULL && field->type->kind == STRUCTTAG) {
+            add_struct_member(get_child(root, 0), type, field);
             dump_semantic_error(15, root->line, "Initialized struct field in definition", NULL);
             return;
         }
@@ -306,6 +306,9 @@ Type Exp(Node root) {
                 type->u.basic = NUM_INT;
             } else if (get_child(root, 0)->datatype == TYPE_FLOAT) {  // Exp -> FLOAT
                 type->u.basic = NUM_FLOAT;
+            } else {
+                dump_node(get_child(root, 0));
+                assert(0);
             }
         }
     } else if (root->child_num == 2) {
@@ -346,6 +349,8 @@ Type Exp(Node root) {
             Node node_left = get_child(root, 0);
             type = Exp(node_left);
             Type type_right = Exp(get_child(root, 2));
+            dump_type(type, 0);
+            dump_type(type_right, 0);
             if (type == NULL || type_right == NULL) {
             } else if ((node_left->child_num == 1 && strcmp(get_child(node_left, 0)->name, "ID") == 0) ||
                        (node_left->child_num == 3 && strcmp(get_child(node_left, 1)->name, "DOT") == 0) ||
@@ -388,6 +393,7 @@ Type Exp(Node root) {
                 } else if (args_matched(act_args, result->type->u.function.argv) == 0) {
                     dump_semantic_error(9, root->line, "Function is not appicable for arguments",
                                         get_child(root, 0)->val);
+                    dump_field(result, 0);
                 } else {
                     type = result->type->u.function.ret;
                 }
@@ -415,6 +421,7 @@ FieldList Args(Node root) {
     Type args_type = Exp(get_child(root, 0));
     if (args_type == NULL) return NULL;
     FieldList args = (FieldList)malloc(sizeof(struct FieldList_));
+    args->name = "arg";
     args->type = args_type;
     args->tail = NULL;
     if (root->child_num == 1) {         // Args -> Exp
@@ -430,7 +437,6 @@ FieldList have_member(FieldList struct_field, char* member) {
     while (member_point != NULL) {
         if (strcmp(member_point->name, member) == 0) {
             return member_point;
-            break;
         }
         member_point = member_point->tail;
     }
@@ -514,9 +520,9 @@ void dump_type(Type type, int depth) {
     switch (type->kind) {
         case BASIC:
             printf(" BASIC kind: ");
-            if (type->u.basic == 0)
+            if (type->u.basic == NUM_INT)
                 printf("NUM_INT\n");
-            else
+            else if (type->u.basic == NUM_FLOAT)
                 printf("NUM_FLOAT\n");
             break;
         case ARRAY:
