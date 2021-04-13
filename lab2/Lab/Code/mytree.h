@@ -8,9 +8,9 @@ enum DATATYPE { TYPE_INT, TYPE_OCT, TYPE_HEX, TYPE_FLOAT, TYPE_ID, TYPE_TYPE, OT
 typedef struct treenode_* Node;
 #define MAX_CHILD_NODES 10
 struct treenode_ {
-    int line;       // 非终结符结点对应的行号
-    char name[32];  // 每个结点的名字类型
-    char val[32];
+    int line;                // 非终结符结点对应的行号
+    char name[32];           // 每个结点的名字类型
+    char val[64];            // BUG --> not enough for float
     int tokenFlag;           // 是否是终结符
     enum DATATYPE datatype;  // 如果是int float ID TYPE要保存其对应的值
     union {                  // 存储对应类型的值
