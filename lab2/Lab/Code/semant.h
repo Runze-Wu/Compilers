@@ -13,22 +13,22 @@ Type StructSpecifier(Node root);
 char* OptTag(Node root);
 char* Tag(Node root);
 
-FieldList VarDec(Node root, Type type, FieldList field);  // type: VarDec type
+FieldList VarDec(Node root, Type type, FieldList field);  // type: VarDec type field: StructTag pointer
 void FunDec(Node root, Type type);                        // type: FunDec return type
 void VarList(Node root, FieldList field);                 // filed: FunDec argc argv
 FieldList ParamDec(Node root);
 
-void CompSt(Node root, Type type);  // type: FunDec return type
-void Stmtlist(Node root, Type type);
-void Stmt(Node root, Type type);
+void CompSt(Node root, Type type);    // type: FunDec return type
+void Stmtlist(Node root, Type type);  // type: FunDec return type
+void Stmt(Node root, Type type);      // type: FunDec return type
 
-void DefList(Node root, FieldList field);
-void Def(Node root, FieldList field);
-void DecList(Node root, Type type, FieldList field);
-void Dec(Node root, Type type, FieldList field);
+void DefList(Node root, FieldList field);             // field: StructTag pointer
+void Def(Node root, FieldList field);                 // field: StructTag pointer
+void DecList(Node root, Type type, FieldList field);  // type: VarDec type field: StructTag pointer
+void Dec(Node root, Type type, FieldList field);      // type: VarDec type field: StructTag pointer
 
-Type Exp(Node root);
-FieldList Args(Node root);
+Type Exp(Node root);        // return exp type
+FieldList Args(Node root);  // return arguments
 
 FieldList have_member(FieldList struct_field, char* member);  // check member in filed
 bool type_matched(Type a, Type b);                            // check type matched, 1: matched, 0: not matched
@@ -39,6 +39,6 @@ void add_func_parameter(Node param, FieldList func_field);
 
 void dump_type(Type type, int depth);         // show the type, use for debug
 void dump_field(FieldList field, int depth);  // show the field, use for debug
-void dump_node(Node node);
+void dump_node(Node node);                    // show the node, use for debug
 void dump_semantic_error(int err_type, int err_line, char* err_msg, char* err_elm);
 #endif
