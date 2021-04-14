@@ -2,6 +2,7 @@
 extern int semantic_errs;
 extern int semantic_debug;
 void Program(Node root) {
+    init_hashtable();
     if (root == NULL) return;
     // print_tree(root, 0);
     // Program -> ExtDefList
@@ -80,11 +81,13 @@ Type StructSpecifier(Node root) {
         }
         field = (FieldList)malloc(sizeof(struct FieldList_));
         field->name = opt_tag;
+        field->tail = NULL;
         field->type = (Type)malloc(sizeof(struct Type_));
         field->type->kind = STRUCTTAG;
         field->type->u.member = NULL;
         DefList(get_child(root, 3), field);
         if (opt_tag != NULL) insert_field(field);
+        dump_field(field, 0);
     } else if (root->child_num == 2) {  // StructSpecifier -> STRUCT TAG
         char* tag = Tag(get_child(root, 1));
         field = look_up(tag);
@@ -153,6 +156,7 @@ void FunDec(Node root, Type type) {
     char* ID = get_child(root, 0)->val;
     FieldList field = (FieldList)malloc(sizeof(struct FieldList_));
     field->name = ID;
+    field->tail = NULL;
     field->type = (Type)malloc(sizeof(struct Type_));
     field->type->kind = FUNCTION;
     field->type->u.function.argc = 0;
@@ -556,7 +560,7 @@ void dump_type(Type type, int depth) {
             dump_type(type->u.function.ret, depth);
             break;
         default:
-            printf("\n");
+            assert(0);
             break;
     }
 }
