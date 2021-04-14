@@ -279,7 +279,7 @@ void Dec(Node root, Type type, FieldList field) {
         }
         FieldList var_dec = VarDec(get_child(root, 0), type, field);
         Type assign_type = Exp(get_child(root, 2));
-        if (var_dec != NULL && assign_type != NULL && type_matched(var_dec->type, assign_type) == 0) {
+        if (var_dec != NULL && type_matched(var_dec->type, assign_type) == 0) {
             dump_semantic_error(5, root->line, "Type mismatched for assignment", NULL);
         }
     }
