@@ -1,4 +1,7 @@
 #include "semant.h"
+
+#include "symtab.h"
+
 extern int semantic_errs;
 extern int semantic_debug;
 void Program(Node root) {
@@ -8,7 +11,9 @@ void Program(Node root) {
     // Program -> ExtDefList
     dump_node(root);
     assert(root->child_num == 1);
+    enter_scope();
     ExtDefList(get_child(root, 0));
+    exist_scope();
 }
 void ExtDefList(Node root) {
     if (root == NULL) return;
@@ -28,7 +33,7 @@ void ExtDef(Node root) {
         ExtDecList(get_child(root, 1), type);
     } else if (strcmp(get_child(root, 1)->name, "FunDec") == 0) {  // ExtDef -> Specifier FunDec CompSt
         FunDec(get_child(root, 1), type);
-        CompSt(get_child(root, 2), type);
+        CompSt(get_child(root, 2), type, true);
     } else if (strcmp(get_child(root, 1)->name, "SEMI") == 0) {  // ExtDef -> Specifier SEMI
     }
 }
@@ -74,7 +79,7 @@ Type StructSpecifier(Node root) {
     if (root->child_num == 5) {  // StructSpecifier -> STRUCT OptTag LC DefList RC
         char* opt_tag = OptTag(get_child(root, 1));
         if (opt_tag != NULL) {
-            if (look_up(opt_tag) != NULL) {
+            if (look_up(opt_tag, true) != NULL) {
                 dump_semantic_error(16, root->line, "Duplicated name", opt_tag);
                 return NULL;
             }
@@ -85,12 +90,14 @@ Type StructSpecifier(Node root) {
         field->type = (Type)malloc(sizeof(struct Type_));
         field->type->kind = STRUCTTAG;
         field->type->u.member = NULL;
+        enter_scope();
         DefList(get_child(root, 3), field);
+        exist_scope();
         if (opt_tag != NULL) insert_field(field);
         dump_field(field, 0);
     } else if (root->child_num == 2) {  // StructSpecifier -> STRUCT TAG
         char* tag = Tag(get_child(root, 1));
-        field = look_up(tag);
+        field = look_up(tag, false);
         if (field == NULL) {
             dump_semantic_error(17, root->line, "Undefined structure", tag);
             return NULL;
@@ -127,7 +134,7 @@ FieldList VarDec(Node root, Type type, FieldList field) {
         var_field->tail = NULL;
         char* ID = get_child(root, 0)->val;
         var_field->name = ID;
-        if (look_up(ID) != NULL) {
+        if (look_up(ID, true) != NULL) {
             if (field != NULL && field->type->kind == STRUCTTAG) {
                 if (have_member(field, ID) != NULL)
                     dump_semantic_error(15, root->line, "Redefined filed", ID);
@@ -162,12 +169,13 @@ void FunDec(Node root, Type type) {
     field->type->u.function.argc = 0;
     field->type->u.function.argv = NULL;
     field->type->u.function.ret = type;
-    if (look_up(ID) != NULL) {
+    if (look_up(ID, true) != NULL) {
         dump_semantic_error(4, root->line, "Redifined function", ID);
     } else {
         insert_field(field);
         dump_field(field, 0);
     }
+    enter_scope();
     if (root->child_num == 3) {         // FunDec -> ID LP RP
     } else if (root->child_num == 4) {  // FunDec -> ID LP VarList RP
         VarList(get_child(root, 2), field);
@@ -193,13 +201,15 @@ FieldList ParamDec(Node root) {
     return type != NULL ? VarDec(get_child(root, 1), type, NULL) : NULL;
 }
 
-void CompSt(Node root, Type type) {
+void CompSt(Node root, Type type, bool FunctionScope) {
     if (root == NULL) return;
     // CompSt -> LC DefList StmtList RC
     dump_node(root);
     assert(root->child_num == 4);
+    if (FunctionScope == false) enter_scope();
     DefList(get_child(root, 1), NULL);
     Stmtlist(get_child(root, 2), type);
+    exist_scope();
 }
 void Stmtlist(Node root, Type type) {
     if (root == NULL) return;
@@ -215,7 +225,7 @@ void Stmt(Node root, Type type) {
     assert(root->child_num == 1 || root->child_num == 2 || root->child_num == 3 || root->child_num == 5 ||
            root->child_num == 7);
     if (root->child_num == 1) {  // Stmt -> CompSt
-        CompSt(get_child(root, 0), type);
+        CompSt(get_child(root, 0), type, false);
     } else if (root->child_num == 2) {  // Stmt -> Exp SEMI
         Exp(get_child(root, 0));
     } else if (root->child_num == 3) {  // Stmt -> RETURN Exp SEMI
@@ -297,7 +307,7 @@ Type Exp(Node root) {
     assert(root->child_num == 1 || root->child_num == 2 || root->child_num == 3 || root->child_num == 4);
     if (root->child_num == 1) {
         if (strcmp(get_child(root, 0)->name, "ID") == 0) {  // Exp -> ID
-            result = look_up(get_child(root, 0)->val);
+            result = look_up(get_child(root, 0)->val, false);
             if (result == NULL) {
                 dump_semantic_error(1, root->line, "Undefined variable", get_child(root, 0)->val);
             } else {
@@ -325,7 +335,7 @@ Type Exp(Node root) {
         if (strcmp(get_child(root, 0)->name, "LP") == 0) {  // Exp -> LP Exp RP
             type = Exp(get_child(root, 1));
         } else if (strcmp(get_child(root, 0)->name, "ID") == 0) {  // Exp -> ID LP RP
-            result = look_up(get_child(root, 0)->val);
+            result = look_up(get_child(root, 0)->val, false);
             if (result == NULL) {
                 dump_semantic_error(2, root->line, "Undefined function", get_child(root, 0)->val);
             } else if (result->type->kind != FUNCTION) {
@@ -386,7 +396,7 @@ Type Exp(Node root) {
         }
     } else if (root->child_num == 4) {
         if (strcmp(get_child(root, 0)->name, "ID") == 0) {  // Exp -> ID LP Args RP
-            result = look_up(get_child(root, 0)->val);
+            result = look_up(get_child(root, 0)->val, false);
             if (result == NULL) {
                 dump_semantic_error(2, root->line, "Undefined function", get_child(root, 0)->val);
             } else if (result->type->kind != FUNCTION) {

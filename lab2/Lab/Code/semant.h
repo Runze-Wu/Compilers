@@ -18,7 +18,8 @@ void FunDec(Node root, Type type);                        // type: FunDec return
 void VarList(Node root, FieldList field);                 // filed: FunDec argc argv
 FieldList ParamDec(Node root);
 
-void CompSt(Node root, Type type);    // type: FunDec return type
+void CompSt(Node root, Type type,
+            bool FunctionScope);      // type: FunDec return type FunctionScope: avoid enter_scope twice
 void Stmtlist(Node root, Type type);  // type: FunDec return type
 void Stmt(Node root, Type type);      // type: FunDec return type
 
