@@ -39,10 +39,11 @@ struct FieldList_ {
 
 struct HashNode_ {
     FieldList data;
-    HashNode link;
+    HashNode link;  // 哈希冲突后的下一个结点
+    int depth;      // 结点所在层次
 };
-void init_hashtable();               // initialize the hashtable
-unsigned int hash(char* name);       // hash function
-void insert_field(FieldList field);  // insert filed to hashtable
-FieldList look_up(char* name);       // look up the item, if find return the index
+void init_hashtable();                            // initialize the hashtable
+unsigned int hash(char* name);                    // hash function
+void insert_field(FieldList field);               // insert filed to hashtable
+FieldList look_up(char* name, bool need_insert);  // look up the item, if insert only look up in current stacktop
 #endif

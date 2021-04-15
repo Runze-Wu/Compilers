@@ -1,8 +1,12 @@
 #include "hashtab.h"
+
+#include "symtab.h"
+
 void init_hashtable() {
     for (int i = 0; i < HASHTABLE_SIZE; i++) {
         hashtable[i] = NULL;
     }
+    init_symbol_table();
 }
 
 unsigned int hash(char* name) {
@@ -22,14 +26,21 @@ void insert_field(FieldList field) {
     node->data = field;
     node->link = hashtable[pos];
     hashtable[pos] = node;
+    insert_hashnode(pos);
 }
 
-FieldList look_up(char* name) {
+FieldList look_up(char* name, bool need_insert) {
     unsigned int pos = hash(name);
     HashNode node = hashtable[pos];
     while (node != NULL) {
         if (strcmp(node->data->name, name) == 0) {
-            return node->data;
+            // insert id non-existence in current stack top
+            assert(node->depth <= StackTop->stack_depth);
+            if (need_insert && node->depth < StackTop->stack_depth) {
+                if (node->data->type->kind == STRUCTTAG) return node->data;
+            } else {
+                return node->data;
+            }
         }
         node = node->link;
     }
