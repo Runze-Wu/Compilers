@@ -134,15 +134,13 @@ FieldList VarDec(Node root, Type type, FieldList field) {
         var_field->tail = NULL;
         char* ID = get_child(root, 0)->val;
         var_field->name = ID;
-        if (look_up(ID, true) != NULL) {
-            if (field != NULL && field->type->kind == STRUCTTAG) {
-                if (have_member(field, ID) != NULL)
-                    dump_semantic_error(15, root->line, "Redefined filed", ID);
-                else {  // 域内变量与外部变量冲突，暂未处理
-                }
-            } else {
-                dump_semantic_error(3, root->line, "Redefined variable", ID);
+        if (field != NULL && field->type->kind == STRUCTTAG) {
+            if (have_member(field, ID) != NULL) {
+                dump_semantic_error(15, root->line, "Redefined filed", ID);
+            } else {  // 域内变量不需要加入哈希表
             }
+        } else if (look_up(ID, true) != NULL) {
+            dump_semantic_error(3, root->line, "Redefined variable", ID);
         } else {
             insert_field(var_field);
             if (field == NULL) dump_field(var_field, 0);
