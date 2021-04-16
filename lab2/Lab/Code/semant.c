@@ -23,13 +23,16 @@ void ExtDef(Node root) {
     dump_node(root);
     assert(root->child_num == 2 || root->child_num == 3);
     Type type = Specifier(get_child(root, 0));
-    // if (type == NULL) return;
-    if (strcmp(get_child(root, 1)->name, "ExtDecList") == 0) {  // ExtDef -> Specifier ExtDecList SEMI
-        ExtDecList(get_child(root, 1), type);
-    } else if (strcmp(get_child(root, 1)->name, "FunDec") == 0) {  // ExtDef -> Specifier FunDec CompSt
-        FunDec(get_child(root, 1), type);
-        CompSt(get_child(root, 2), type);
-    } else if (strcmp(get_child(root, 1)->name, "SEMI") == 0) {  // ExtDef -> Specifier SEMI
+    if (root->child_num == 3) {
+        if (strcmp(get_child(root, 1)->name, "ExtDecList") == 0) {  // ExtDef -> Specifier ExtDecList SEMI
+            ExtDecList(get_child(root, 1), type);
+        } else if (strcmp(get_child(root, 1)->name, "FunDec") == 0) {  // ExtDef -> Specifier FunDec CompSt
+            FunDec(get_child(root, 1), type);
+            CompSt(get_child(root, 2), type);
+        }
+    } else if (root->child_num == 2) {
+        if (strcmp(get_child(root, 1)->name, "SEMI") == 0) {  // ExtDef -> Specifier SEMI
+        }
     }
 }
 void ExtDecList(Node root, Type type) {
@@ -52,6 +55,7 @@ Type Specifier(Node root) {
     if (strcmp(get_child(root, 0)->name, "TYPE") == 0) {  // Specifier -> TYPE
         type = (Type)malloc(sizeof(struct Type_));
         type->kind = BASIC;
+        type->need_free = false;
         if (strcmp(get_child(root, 0)->val, "int") == 0) {
             type->u.basic = NUM_INT;
         } else if (strcmp(get_child(root, 0)->val, "float") == 0) {
@@ -84,6 +88,7 @@ Type StructSpecifier(Node root) {
         field->tail = NULL;
         field->type = (Type)malloc(sizeof(struct Type_));
         field->type->kind = STRUCTTAG;
+        field->type->need_free = false;
         field->type->u.member = NULL;
         DefList(get_child(root, 3), field);
         if (opt_tag != NULL) insert_field(field);
@@ -98,6 +103,7 @@ Type StructSpecifier(Node root) {
     }
     type = (Type)malloc(sizeof(struct Type_));
     type->kind = STRUCTURE;
+    type->need_free = false;
     type->u.structure = field;
     return type;
 }
@@ -122,15 +128,17 @@ FieldList VarDec(Node root, Type type, FieldList field) {
     dump_node(root);
     assert(root->child_num == 1 || root->child_num == 4);
     if (root->child_num == 1) {  // VarDec -> ID
-        var_field = (FieldList)malloc(sizeof(struct FieldList_));
-        var_field->type = type;  // 冲突与否，都会返回其Type
-        var_field->tail = NULL;
         char* ID = get_child(root, 0)->val;
+        var_field = (FieldList)malloc(sizeof(struct FieldList_));
         var_field->name = ID;
+        var_field->type = type;
+        var_field->tail = NULL;
         if (field != NULL && field->type->kind == STRUCTTAG) {
-            if (have_member(field, ID) != NULL)
+            if (have_member(field, ID) != NULL) {
                 dump_semantic_error(15, root->line, "Redefined filed", ID);
-            else {  // 域内变量不需要加入哈希表
+                free(var_field);
+                var_field = NULL;
+            } else {  // 域内变量不需要加入哈希表
             }
         } else if (look_up(ID) != NULL) {
             dump_semantic_error(3, root->line, "Redefined variable", ID);
@@ -141,6 +149,7 @@ FieldList VarDec(Node root, Type type, FieldList field) {
     } else if (root->child_num == 4) {  // VarDec -> VarDec LB INT RB
         Type array_type = (Type)malloc(sizeof(struct Type_));
         array_type->kind = ARRAY;
+        array_type->need_free = false;
         array_type->u.array.size = get_child(root, 2)->data.val_int;
         array_type->u.array.elem = type;
         return VarDec(get_child(root, 0), array_type, field);
@@ -152,17 +161,19 @@ void FunDec(Node root, Type type) {
     dump_node(root);
     assert(root->child_num == 3 || root->child_num == 4);
     char* ID = get_child(root, 0)->val;
-    FieldList field = (FieldList)malloc(sizeof(struct FieldList_));
-    field->name = ID;
-    field->tail = NULL;
-    field->type = (Type)malloc(sizeof(struct Type_));
-    field->type->kind = FUNCTION;
-    field->type->u.function.argc = 0;
-    field->type->u.function.argv = NULL;
-    field->type->u.function.ret = type;
+    FieldList field = NULL;
     if (look_up(ID) != NULL) {
         dump_semantic_error(4, root->line, "Redifined function", ID);
     } else {
+        field = (FieldList)malloc(sizeof(struct FieldList_));
+        field->name = ID;
+        field->tail = NULL;
+        field->type = (Type)malloc(sizeof(struct Type_));
+        field->type->kind = FUNCTION;
+        field->type->need_free = false;
+        field->type->u.function.argc = 0;
+        field->type->u.function.argv = NULL;
+        field->type->u.function.ret = type;
         insert_field(field);
         dump_field(field, 0);
     }
@@ -284,6 +295,9 @@ void Dec(Node root, Type type, FieldList field) {
         if (var_dec != NULL && type_matched(var_dec->type, assign_type) == 0) {
             dump_semantic_error(5, root->line, "Type mismatched for assignment", NULL);
         }
+        if (assign_type != NULL && assign_type->need_free) {
+            free(assign_type);
+        }
     }
 }
 
@@ -304,6 +318,7 @@ Type Exp(Node root) {
         } else {
             type = (Type)malloc(sizeof(struct Type_));
             type->kind = BASIC;
+            type->need_free = true;
             if (get_child(root, 0)->datatype == TYPE_INT) {  // Exp -> INT
                 type->u.basic = NUM_INT;
             } else if (get_child(root, 0)->datatype == TYPE_FLOAT) {  // Exp -> FLOAT
@@ -502,11 +517,10 @@ void add_struct_member(Node member, Type mem_type, FieldList struct_field) {
 }
 
 void add_func_parameter(Node param, FieldList func_field) {
-    assert(func_field != NULL);
-    func_field->type->u.function.argc++;
     FieldList arg_field = ParamDec(param);
+    if (func_field == NULL || arg_field == NULL) return;
+    func_field->type->u.function.argc++;
     FieldList temp_field = func_field->type->u.function.argv;
-    if (arg_field == NULL) return;
     if (func_field->type->u.function.argv == NULL) {
         func_field->type->u.function.argv = arg_field;
     } else {
