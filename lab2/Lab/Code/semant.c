@@ -163,7 +163,7 @@ void FunDec(Node root, Type type) {
     char* ID = get_child(root, 0)->val;
     FieldList field = NULL;
     if (look_up(ID) != NULL) {
-        dump_semantic_error(4, root->line, "Redifined function", ID);
+        dump_semantic_error(4, root->line, "Redefined function", ID);
     } else {
         field = (FieldList)malloc(sizeof(struct FieldList_));
         field->name = ID;
@@ -344,7 +344,7 @@ Type Exp(Node root) {
             } else if (result->type->kind != FUNCTION) {
                 dump_semantic_error(11, root->line, "Not a function", get_child(root, 0)->val);
             } else if (args_matched(NULL, result->type->u.function.argv) == 0) {
-                dump_semantic_error(9, root->line, "Function is not appicable for arguments", get_child(root, 0)->val);
+                dump_semantic_error(9, root->line, "Function is not applicable for arguments", get_child(root, 0)->val);
             }
             if (result != NULL && result->type->kind == FUNCTION) {
                 type = result->type->u.function.ret;
@@ -408,7 +408,7 @@ Type Exp(Node root) {
                 FieldList act_args = Args(get_child(root, 2));
                 if (act_args == NULL) {
                 } else if (args_matched(act_args, result->type->u.function.argv) == 0) {
-                    dump_semantic_error(9, root->line, "Function is not appicable for arguments",
+                    dump_semantic_error(9, root->line, "Function is not applicable for arguments",
                                         get_child(root, 0)->val);
                     dump_field(result, 0);
                 } else {
