@@ -531,7 +531,6 @@ void add_func_parameter(Node param, FieldList func_field) {
     if (func_field == NULL || arg_field == NULL) return;
     func_field->type->u.function.argc++;
     FieldList temp_field = func_field->type->u.function.argv;
-    if (arg_field == NULL) return;
     if (func_field->type->u.function.argv == NULL) {
         func_field->type->u.function.argv = arg_field;
     } else {
