@@ -238,10 +238,18 @@ void Stmt(Node root, Type type) {
          * Stmt -> IF LP Exp RP Stmt
          *  Stmt -> WHILE LP Exp RP Stmt
          */
-        Exp(get_child(root, 2));
+        Type cond_type = Exp(get_child(root, 2));
+        if (cond_type != NULL && (cond_type->kind != BASIC || cond_type->u.basic != NUM_INT)) {
+            // 非INT型作为条件语句
+            dump_semantic_error(21, root->line, "Non-int type cannot used as a condition", NULL);
+        }
         Stmt(get_child(root, 4), type);
     } else if (root->child_num == 7) {  // Stmt -> IF LP Exp RP Stmt ELSE Stmt
-        Exp(get_child(root, 2));
+        Type cond_type = Exp(get_child(root, 2));
+        if (cond_type != NULL && (cond_type->kind != BASIC || cond_type->u.basic != NUM_INT)) {
+            // 非INT型作为条件语句
+            dump_semantic_error(21, root->line, "Non-int type cannot used as a condition", NULL);
+        }
         Stmt(get_child(root, 4), type);
         Stmt(get_child(root, 6), type);
     }
@@ -333,7 +341,19 @@ Type Exp(Node root) {
          * Exp -> NOT Exp
          * Exp -> MINUS Exp
          */
-        type = Exp(get_child(root, 1));
+        if (strcmp(get_child(root, 0)->name, "NOT") == 0) {
+            type = Exp(get_child(root, 1));
+            if (type != NULL && (type->kind != BASIC || type->u.basic != NUM_INT)) {
+                // 非INT型使用了逻辑运算符
+                dump_semantic_error(20, root->line, "Non-int type cannot perform logical operations", NULL);
+            }
+            type = (Type)malloc(sizeof(struct Type_));
+            type->kind = BASIC;
+            type->u.basic = NUM_INT;
+            type->need_free = true;
+        } else if (strcmp(get_child(root, 0)->name, "MINUS") == 0) {
+            type = Exp(get_child(root, 1));
+        }
     } else if (root->child_num == 3) {
         if (strcmp(get_child(root, 0)->name, "LP") == 0) {  // Exp -> LP Exp RP
             type = Exp(get_child(root, 1));
@@ -395,6 +415,20 @@ Type Exp(Node root) {
                 dump_semantic_error(7, root->line, "Type mismatched for operands", NULL);
                 dump_type(type, 0);
                 dump_type(type_right, 0);
+            } else if (strcmp(get_child(root, 1)->name, "AND") == 0 || strcmp(get_child(root, 1)->name, "OR") == 0) {
+                if (type != NULL && (type->kind != BASIC || type->u.basic != NUM_INT)) {
+                    // 非INT型使用了逻辑运算符
+                    dump_semantic_error(20, root->line, "Non-int type cannot perform logical operations", NULL);
+                }
+                type = (Type)malloc(sizeof(struct Type_));
+                type->kind = BASIC;
+                type->u.basic = NUM_INT;
+                type->need_free = true;
+            } else if (strcmp(get_child(root, 1)->name, "RELOP") == 0) {
+                type = (Type)malloc(sizeof(struct Type_));
+                type->kind = BASIC;
+                type->u.basic = NUM_INT;
+                type->need_free = true;
             }
         }
     } else if (root->child_num == 4) {
