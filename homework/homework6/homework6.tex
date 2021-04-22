@@ -1,0 +1,53 @@
+\documentclass[11pt]{article}
+\usepackage{bm}
+\usepackage{ctex}
+\usepackage{array}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{tabularx}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\usepackage{enumitem}
+\pagestyle{fancy}
+\hypersetup{hypertex = true,
+			colorlinks = true,
+			linkcolor = blue ,
+			anchorcolor = blue,
+			citecolor = blue}
+\fancyhf{}
+\chead{Compiler}
+\fancyhead[r]{\bfseries\thepage}
+\fancyhead[l]{\bfseries\rightmark}
+\setlength{\listparindent}{0em} %段落缩进量
+\begin{titlepage}
+	\title{编译原理作业6}
+	\author{
+			\textbf{作者:} {吴润泽}
+			\and {\textbf{学号:} 181860109}
+		}
+\end{titlepage}
+\begin{document}
+\maketitle
+\section*{5.4.3}
+\begin{itemize}
+	\item[(1)]提取公因子,文法变为
+	      \begin{equation}
+		      \begin{aligned}
+			      B \rightarrow\quad & B_{1} A\ \{B.val=2\times B_1.val+A.val\} \\
+			      |\quad             & 1\ \{B.val=1\}                           \\
+			      A \rightarrow\quad & 0\ \{A.val=0\}                           \\
+			      |\quad             & 1\ \{A.val=1\}
+		      \end{aligned}
+	      \end{equation}
+	\item[(2)]去除左递归,文法变为
+	      \begin{equation}
+		      \begin{aligned}
+			      B \rightarrow\quad & 1\ \{C.inh=1\}\ C\ \{B.val=C.val\}                         \\
+			      C \rightarrow\quad & A\ \{C_1.inh=2\times C.inh+A.val\}\ C_1\ \{C.val=C_1.val\} \\
+			      |\quad             & \epsilon\ \{C.val=C.inh\}                                  \\
+			      A \rightarrow\quad & 0\ \{A.val=0\}                                             \\
+			      |\quad             & 1\ \{A.val=1\}
+		      \end{aligned}
+	      \end{equation}
+\end{itemize}
+\end{document}
