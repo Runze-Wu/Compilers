@@ -25,6 +25,8 @@ void exist_scope() {
         HashNode old_entry = hashtable[old_head->entry_idx];
         old_scope->layer_head = old_scope->layer_head->down;
         if (old_entry != NULL) {
+            // skip delete hashnode which has struct field
+            if (old_entry->data != NULL && old_entry->data->type->kind == STRUCTTAG) continue;
             hashtable[old_head->entry_idx] = hashtable[old_head->entry_idx]->link;
             free(old_entry);
         }

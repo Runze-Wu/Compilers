@@ -34,13 +34,13 @@ FieldList look_up(char* name, bool need_insert) {
     HashNode node = hashtable[pos];
     while (node != NULL) {
         if (strcmp(node->data->name, name) == 0) {
-            // insert id non-existence in current stack top
-            assert(node->depth <= StackTop->stack_depth);
-            if (need_insert && node->depth < StackTop->stack_depth) {
-                if (node->data->type->kind == STRUCTTAG) return node->data;
-            } else {
+            if (node->data->type->kind == STRUCTTAG) {  // struct has global scope
                 return node->data;
             }
+            if (need_insert && node->depth == StackTop->stack_depth) {  // insert variance in local scope
+                return node->data;
+            }
+            if (!need_insert) return node->data;  // return the field
         }
         node = node->link;
     }
