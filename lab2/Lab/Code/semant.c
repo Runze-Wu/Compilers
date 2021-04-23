@@ -505,7 +505,6 @@ FieldList have_member(FieldList struct_field, char* member) {
 }
 
 bool type_matched(Type a, Type b) {
-    if (a == NULL && b == NULL) return true;
     if (a == NULL || b == NULL) return false;
     if (a->kind != b->kind) return false;
     FieldList a_member = a->u.member;
