@@ -81,6 +81,7 @@ ExtDef: Specifier ExtDecList SEMI                   { $$=nonterminal_node("ExtDe
     | error SEMI                                    { yyerrok; }
     | Specifier error SEMI                          { yyerrok; }
     | Specifier error CompSt                        { yyerrok; }
+    | Specifier FunDec SEMI                         { $$=nonterminal_node("ExtDef",@$.first_line,3,$1,$2,$3); }
 ;               
 ExtDecList: VarDec                                  { $$=nonterminal_node("ExtDecList",@$.first_line,1,$1); }
     | VarDec COMMA ExtDecList                       { $$=nonterminal_node("ExtDecList",@$.first_line,3,$1,$2,$3); }
