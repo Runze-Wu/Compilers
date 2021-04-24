@@ -2,11 +2,14 @@
 
 #include "symtab.h"
 
+void init_funcdeclist() { funcdeclist = NULL; }
+
 void init_hashtable() {
     for (int i = 0; i < HASHTABLE_SIZE; i++) {
         hashtable[i] = NULL;
     }
     init_symbol_table();
+    init_funcdeclist();
 }
 
 unsigned int hash(char* name) {
@@ -29,7 +32,16 @@ void insert_field(FieldList field) {
     insert_hashnode(pos);
 }
 
-FieldList look_up(char* name, bool need_insert) {
+void insert_funcdec(char* name, int lineno) {
+    FuncDecList funcdec = (FuncDecList)malloc(sizeof(struct FuncDecList_));
+    assert(funcdec != NULL);
+    funcdec->name = name;
+    funcdec->lineno = lineno;
+    funcdec->tail = funcdeclist;
+    funcdeclist = funcdec;
+}
+
+FieldList look_up(char* name, bool need_insert, bool struct_def) {
     unsigned int pos = hash(name);
     HashNode node = hashtable[pos];
     while (node != NULL) {
@@ -40,9 +52,21 @@ FieldList look_up(char* name, bool need_insert) {
             if (need_insert && node->depth == StackTop->stack_depth) {  // insert variance in local scope
                 return node->data;
             }
-            if (!need_insert) return node->data;  // return the field
+            if (!need_insert || struct_def) return node->data;  // return the field
         }
         node = node->link;
     }
     return NULL;
+}
+
+bool has_def(char* name) {
+    unsigned int pos = hash(name);
+    HashNode node = hashtable[pos];
+    while (node != NULL) {
+        if (strcmp(node->data->name, name) == 0) {
+            if (node->data->type->kind == FUNCTION) return true;
+        }
+        node = node->link;
+    }
+    return false;
 }

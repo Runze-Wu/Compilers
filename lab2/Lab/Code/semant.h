@@ -14,7 +14,7 @@ char* OptTag(Node root);
 char* Tag(Node root);
 
 FieldList VarDec(Node root, Type type, FieldList field);  // type: VarDec type field: StructTag pointer
-void FunDec(Node root, Type type);                        // type: FunDec return type
+void FunDec(Node root, Type type, bool funcdec);          // type: FunDec return type
 void VarList(Node root, FieldList field);                 // filed: FunDec argc argv
 FieldList ParamDec(Node root);
 
@@ -37,6 +37,7 @@ bool args_matched(FieldList act_args,
                   FieldList form_args);  // check function arguments matched
 void add_struct_member(Node member, Type mem_type, FieldList struct_field);
 void add_func_parameter(Node param, FieldList func_field);
+void judge_dec_hasdef();  // check all declaration has definition
 
 void dump_type(Type type, int depth);         // show the type, use for debug
 void dump_field(FieldList field, int depth);  // show the field, use for debug

@@ -13,6 +13,7 @@ void Program(Node root) {
     assert(root->child_num == 1);
     enter_scope();
     ExtDefList(get_child(root, 0));
+    judge_dec_hasdef();
     exist_scope();
 }
 void ExtDefList(Node root) {
@@ -31,9 +32,11 @@ void ExtDef(Node root) {
     if (root->child_num == 3) {
         if (strcmp(get_child(root, 1)->name, "ExtDecList") == 0) {  // ExtDef -> Specifier ExtDecList SEMI
             ExtDecList(get_child(root, 1), type);
-        } else if (strcmp(get_child(root, 1)->name, "FunDec") == 0) {  // ExtDef -> Specifier FunDec CompSt
-            FunDec(get_child(root, 1), type);
+        } else if (strcmp(get_child(root, 2)->name, "CompSt") == 0) {  // ExtDef -> Specifier FunDec CompSt
+            FunDec(get_child(root, 1), type, false);
             CompSt(get_child(root, 2), type, true);
+        } else if (strcmp(get_child(root, 2)->name, "SEMI") == 0) {  // ExtDef -> Specifier FunDec SEMI
+            FunDec(get_child(root, 1), type, true);
         }
     } else if (root->child_num == 2) {
         if (strcmp(get_child(root, 1)->name, "SEMI") == 0) {  // ExtDef -> Specifier SEMI
@@ -83,7 +86,7 @@ Type StructSpecifier(Node root) {
     if (root->child_num == 5) {  // StructSpecifier -> STRUCT OptTag LC DefList RC
         char* opt_tag = OptTag(get_child(root, 1));
         if (opt_tag != NULL) {
-            if (look_up(opt_tag, true) != NULL) {
+            if (look_up(opt_tag, true, true) != NULL) {
                 dump_semantic_error(16, root->line, "Duplicated name", opt_tag);
                 return NULL;
             }
@@ -94,16 +97,18 @@ Type StructSpecifier(Node root) {
         field->type = (Type)malloc(sizeof(struct Type_));
         field->type->kind = STRUCTTAG;
         field->type->need_free = false;
+        field->type->struct_def_done = false;
         field->type->u.member = NULL;
+        if (opt_tag != NULL) insert_field(field);
         enter_scope();
         DefList(get_child(root, 3), field);
         exist_scope();
-        if (opt_tag != NULL) insert_field(field);
+        field->type->struct_def_done = true;
         dump_field(field, 0);
     } else if (root->child_num == 2) {  // StructSpecifier -> STRUCT TAG
         char* tag = Tag(get_child(root, 1));
-        field = look_up(tag, false);
-        if (field == NULL) {
+        field = look_up(tag, false, true);
+        if (field == NULL || field->type->struct_def_done == false) {
             dump_semantic_error(17, root->line, "Undefined structure", tag);
             return NULL;
         }
@@ -147,7 +152,7 @@ FieldList VarDec(Node root, Type type, FieldList field) {
                 var_field = NULL;
             } else {  // 域内变量不需要加入哈希表
             }
-        } else if (look_up(ID, true) != NULL) {
+        } else if (look_up(ID, true, false) != NULL) {
             dump_semantic_error(3, root->line, "Redefined variable", ID);
         } else {
             insert_field(var_field);
@@ -163,14 +168,18 @@ FieldList VarDec(Node root, Type type, FieldList field) {
     }
     return var_field;
 }
-void FunDec(Node root, Type type) {
+void FunDec(Node root, Type type, bool funcdec) {
     if (root == NULL) return;
     dump_node(root);
     assert(root->child_num == 3 || root->child_num == 4);
     char* ID = get_child(root, 0)->val;
+    bool redefined = false;
     FieldList field = NULL;
-    if (look_up(ID, true) != NULL) {
+    FieldList prefield = look_up(ID, true, false);
+    if (prefield != NULL && funcdec == false &&
+        prefield->type->kind == FUNCTION) {  // function definition already exist
         dump_semantic_error(4, root->line, "Redefined function", ID);
+        redefined = true;
     } else {
         field = (FieldList)malloc(sizeof(struct FieldList_));
         field->name = ID;
@@ -181,13 +190,22 @@ void FunDec(Node root, Type type) {
         field->type->u.function.argc = 0;
         field->type->u.function.argv = NULL;
         field->type->u.function.ret = type;
-        insert_field(field);
-        dump_field(field, 0);
+        if (funcdec) field->type->kind = FUNCTIONDEC;              // modify to the func dec type
+        if (!prefield || !funcdec) insert_field(field);            // first dec or def
+        if (!prefield && funcdec) insert_funcdec(ID, root->line);  // insert the func declartion name
     }
     enter_scope();
     if (root->child_num == 3) {         // FunDec -> ID LP RP
     } else if (root->child_num == 4) {  // FunDec -> ID LP VarList RP
         VarList(get_child(root, 2), field);
+    }
+    if (funcdec) exist_scope();  // function declaration end
+    dump_field(field, 0);
+    if (prefield && (prefield->type->kind == FUNCTION || prefield->type->kind == FUNCTIONDEC) && field) {
+        if (!type_matched(prefield->type->u.function.ret, field->type->u.function.ret) ||
+            !args_matched(prefield->type->u.function.argv, field->type->u.function.argv)) {
+            dump_semantic_error(19, root->line, "Inconsistent declaration of function", ID);
+        }
     }
 }
 void VarList(Node root, FieldList field) {
@@ -251,14 +269,14 @@ void Stmt(Node root, Type type) {
         Type cond_type = Exp(get_child(root, 2));
         if (cond_type != NULL && (cond_type->kind != BASIC || cond_type->u.basic != NUM_INT)) {
             // 非INT型作为条件语句
-            dump_semantic_error(21, root->line, "Non-int type cannot used as a condition", NULL);
+            dump_semantic_error(7, root->line, "Non-int type cannot used as a condition", NULL);
         }
         Stmt(get_child(root, 4), type);
     } else if (root->child_num == 7) {  // Stmt -> IF LP Exp RP Stmt ELSE Stmt
         Type cond_type = Exp(get_child(root, 2));
         if (cond_type != NULL && (cond_type->kind != BASIC || cond_type->u.basic != NUM_INT)) {
             // 非INT型作为条件语句
-            dump_semantic_error(21, root->line, "Non-int type cannot used as a condition", NULL);
+            dump_semantic_error(7, root->line, "Non-int type cannot used as a condition", NULL);
         }
         Stmt(get_child(root, 4), type);
         Stmt(get_child(root, 6), type);
@@ -327,7 +345,7 @@ Type Exp(Node root) {
     assert(root->child_num == 1 || root->child_num == 2 || root->child_num == 3 || root->child_num == 4);
     if (root->child_num == 1) {
         if (strcmp(get_child(root, 0)->name, "ID") == 0) {  // Exp -> ID
-            result = look_up(get_child(root, 0)->val, false);
+            result = look_up(get_child(root, 0)->val, false, false);
             if (result == NULL) {
                 dump_semantic_error(1, root->line, "Undefined variable", get_child(root, 0)->val);
             } else {
@@ -355,7 +373,7 @@ Type Exp(Node root) {
             type = Exp(get_child(root, 1));
             if (type != NULL && (type->kind != BASIC || type->u.basic != NUM_INT)) {
                 // 非INT型使用了逻辑运算符
-                dump_semantic_error(20, root->line, "Non-int type cannot perform logical operations", NULL);
+                dump_semantic_error(7, root->line, "Non-int type cannot perform logical operations", NULL);
             }
             type = (Type)malloc(sizeof(struct Type_));
             type->kind = BASIC;
@@ -368,15 +386,15 @@ Type Exp(Node root) {
         if (strcmp(get_child(root, 0)->name, "LP") == 0) {  // Exp -> LP Exp RP
             type = Exp(get_child(root, 1));
         } else if (strcmp(get_child(root, 0)->name, "ID") == 0) {  // Exp -> ID LP RP
-            result = look_up(get_child(root, 0)->val, false);
+            result = look_up(get_child(root, 0)->val, false, false);
             if (result == NULL) {
                 dump_semantic_error(2, root->line, "Undefined function", get_child(root, 0)->val);
-            } else if (result->type->kind != FUNCTION) {
+            } else if (result->type->kind != FUNCTION && result->type->kind != FUNCTIONDEC) {
                 dump_semantic_error(11, root->line, "Not a function", get_child(root, 0)->val);
             } else if (args_matched(NULL, result->type->u.function.argv) == 0) {
                 dump_semantic_error(9, root->line, "Function is not applicable for arguments", get_child(root, 0)->val);
             }
-            if (result != NULL && result->type->kind == FUNCTION) {
+            if (result != NULL && (result->type->kind == FUNCTION || result->type->kind == FUNCTIONDEC)) {
                 type = result->type->u.function.ret;
             }
         } else if (strcmp(get_child(root, 1)->name, "DOT") == 0) {  // Exp -> Exp DOT ID
@@ -428,7 +446,7 @@ Type Exp(Node root) {
             } else if (strcmp(get_child(root, 1)->name, "AND") == 0 || strcmp(get_child(root, 1)->name, "OR") == 0) {
                 if (type != NULL && (type->kind != BASIC || type->u.basic != NUM_INT)) {
                     // 非INT型使用了逻辑运算符
-                    dump_semantic_error(20, root->line, "Non-int type cannot perform logical operations", NULL);
+                    dump_semantic_error(7, root->line, "Non-int type cannot perform logical operations", NULL);
                 }
                 type = (Type)malloc(sizeof(struct Type_));
                 type->kind = BASIC;
@@ -443,21 +461,19 @@ Type Exp(Node root) {
         }
     } else if (root->child_num == 4) {
         if (strcmp(get_child(root, 0)->name, "ID") == 0) {  // Exp -> ID LP Args RP
-            result = look_up(get_child(root, 0)->val, false);
+            result = look_up(get_child(root, 0)->val, false, false);
             if (result == NULL) {
                 dump_semantic_error(2, root->line, "Undefined function", get_child(root, 0)->val);
-            } else if (result->type->kind != FUNCTION) {
+            } else if (result->type->kind != FUNCTION && result->type->kind != FUNCTIONDEC) {
                 dump_semantic_error(11, root->line, "Not a function", get_child(root, 0)->val);
             } else {
-                FieldList act_args = Args(get_child(root, 2));
-                if (act_args == NULL) {
-                } else if (args_matched(act_args, result->type->u.function.argv) == 0) {
+                if (args_matched(Args(get_child(root, 2)), result->type->u.function.argv) == 0) {
                     dump_semantic_error(9, root->line, "Function is not applicable for arguments",
                                         get_child(root, 0)->val);
-                    dump_field(result, 0);
-                } else {
-                    type = result->type->u.function.ret;
                 }
+            }
+            if (result != NULL && (result->type->kind == FUNCTION || result->type->kind == FUNCTIONDEC)) {
+                type = result->type->u.function.ret;
             }
         } else if (strcmp(get_child(root, 0)->name, "Exp") == 0) {  // Exp -> Exp LB Exp RB
             Type type1 = Exp(get_child(root, 0));
@@ -506,6 +522,7 @@ FieldList have_member(FieldList struct_field, char* member) {
 
 bool type_matched(Type a, Type b) {
     if (a == NULL || b == NULL) return false;
+    if (a == b) return true;
     if (a->kind != b->kind) return false;
     FieldList a_member = a->u.member;
     FieldList b_member = b->u.member;
@@ -569,6 +586,15 @@ void add_func_parameter(Node param, FieldList func_field) {
     } else {
         while (temp_field->tail != NULL) temp_field = temp_field->tail;
         temp_field->tail = arg_field;
+    }
+}
+void judge_dec_hasdef() {
+    FuncDecList fundec = funcdeclist;
+    while (fundec) {
+        if (!has_def(fundec->name)) {
+            dump_semantic_error(18, fundec->lineno, "Undefined function", fundec->name);
+        }
+        fundec = fundec->tail;
     }
 }
 
