@@ -89,14 +89,16 @@ Type StructSpecifier(Node root) {
         field->type = (Type)malloc(sizeof(struct Type_));
         field->type->kind = STRUCTTAG;
         field->type->need_free = false;
+        field->type->struct_def_done = false;
         field->type->u.member = NULL;
-        DefList(get_child(root, 3), field);
         if (opt_tag != NULL) insert_field(field);
+        DefList(get_child(root, 3), field);
+        field->type->struct_def_done = true;
         dump_field(field, 0);
     } else if (root->child_num == 2) {  // StructSpecifier -> STRUCT TAG
         char* tag = Tag(get_child(root, 1));
         field = look_up(tag);
-        if (field == NULL) {
+        if (field == NULL || field->type->struct_def_done == false) {
             dump_semantic_error(17, root->line, "Undefined structure", tag);
             return NULL;
         }
@@ -241,14 +243,14 @@ void Stmt(Node root, Type type) {
         Type cond_type = Exp(get_child(root, 2));
         if (cond_type != NULL && (cond_type->kind != BASIC || cond_type->u.basic != NUM_INT)) {
             // 非INT型作为条件语句
-            dump_semantic_error(21, root->line, "Non-int type cannot used as a condition", NULL);
+            dump_semantic_error(7, root->line, "Non-int type cannot used as a condition", NULL);
         }
         Stmt(get_child(root, 4), type);
     } else if (root->child_num == 7) {  // Stmt -> IF LP Exp RP Stmt ELSE Stmt
         Type cond_type = Exp(get_child(root, 2));
         if (cond_type != NULL && (cond_type->kind != BASIC || cond_type->u.basic != NUM_INT)) {
             // 非INT型作为条件语句
-            dump_semantic_error(21, root->line, "Non-int type cannot used as a condition", NULL);
+            dump_semantic_error(7, root->line, "Non-int type cannot used as a condition", NULL);
         }
         Stmt(get_child(root, 4), type);
         Stmt(get_child(root, 6), type);
@@ -345,7 +347,7 @@ Type Exp(Node root) {
             type = Exp(get_child(root, 1));
             if (type != NULL && (type->kind != BASIC || type->u.basic != NUM_INT)) {
                 // 非INT型使用了逻辑运算符
-                dump_semantic_error(20, root->line, "Non-int type cannot perform logical operations", NULL);
+                dump_semantic_error(7, root->line, "Non-int type cannot perform logical operations", NULL);
             }
             type = (Type)malloc(sizeof(struct Type_));
             type->kind = BASIC;
@@ -418,7 +420,7 @@ Type Exp(Node root) {
             } else if (strcmp(get_child(root, 1)->name, "AND") == 0 || strcmp(get_child(root, 1)->name, "OR") == 0) {
                 if (type != NULL && (type->kind != BASIC || type->u.basic != NUM_INT)) {
                     // 非INT型使用了逻辑运算符
-                    dump_semantic_error(20, root->line, "Non-int type cannot perform logical operations", NULL);
+                    dump_semantic_error(7, root->line, "Non-int type cannot perform logical operations", NULL);
                 }
                 type = (Type)malloc(sizeof(struct Type_));
                 type->kind = BASIC;
@@ -439,15 +441,13 @@ Type Exp(Node root) {
             } else if (result->type->kind != FUNCTION) {
                 dump_semantic_error(11, root->line, "Not a function", get_child(root, 0)->val);
             } else {
-                FieldList act_args = Args(get_child(root, 2));
-                if (act_args == NULL) {
-                } else if (args_matched(act_args, result->type->u.function.argv) == 0) {
+                if (args_matched(Args(get_child(root, 2)), result->type->u.function.argv) == 0) {
                     dump_semantic_error(9, root->line, "Function is not applicable for arguments",
                                         get_child(root, 0)->val);
-                    dump_field(result, 0);
-                } else {
-                    type = result->type->u.function.ret;
                 }
+            }
+            if (result != NULL && result->type->kind == FUNCTION) {
+                type = result->type->u.function.ret;
             }
         } else if (strcmp(get_child(root, 0)->name, "Exp") == 0) {  // Exp -> Exp LB Exp RB
             Type type1 = Exp(get_child(root, 0));
@@ -496,6 +496,7 @@ FieldList have_member(FieldList struct_field, char* member) {
 
 bool type_matched(Type a, Type b) {
     if (a == NULL || b == NULL) return false;
+    if (a == b) return true;
     if (a->kind != b->kind) return false;
     FieldList a_member = a->u.member;
     FieldList b_member = b->u.member;

@@ -16,6 +16,7 @@ HashNode hashtable[HASHTABLE_SIZE];
 struct Type_ {
     enum { BASIC, ARRAY, STRUCTURE, STRUCTTAG, FUNCTION } kind;
     bool need_free;
+    bool struct_def_done;
     union {
         enum { NUM_INT, NUM_FLOAT } basic;  // 基本类型
         struct {
