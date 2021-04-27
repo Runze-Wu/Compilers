@@ -173,13 +173,11 @@ void FunDec(Node root, Type type, bool funcdec) {
     dump_node(root);
     assert(root->child_num == 3 || root->child_num == 4);
     char* ID = get_child(root, 0)->val;
-    bool redefined = false;
     FieldList field = NULL;
     FieldList prefield = look_up(ID, true, false);
     if (prefield != NULL && funcdec == false &&
         prefield->type->kind == FUNCTION) {  // function definition already exist
         dump_semantic_error(4, root->line, "Redefined function", ID);
-        redefined = true;
     } else {
         field = (FieldList)malloc(sizeof(struct FieldList_));
         field->name = ID;
