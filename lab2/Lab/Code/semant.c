@@ -26,7 +26,7 @@ void ExtDef(Node root) {
     if (root->child_num == 3) {
         if (strcmp(get_child(root, 1)->name, "ExtDecList") == 0) {  // ExtDef -> Specifier ExtDecList SEMI
             ExtDecList(get_child(root, 1), type);
-        } else if (strcmp(get_child(root, 1)->name, "FunDec") == 0) {  // ExtDef -> Specifier FunDec CompSt
+        } else if (strcmp(get_child(root, 2)->name, "CompSt") == 0) {  // ExtDef -> Specifier FunDec CompSt
             FunDec(get_child(root, 1), type);
             CompSt(get_child(root, 2), type);
         }
@@ -164,7 +164,8 @@ void FunDec(Node root, Type type) {
     assert(root->child_num == 3 || root->child_num == 4);
     char* ID = get_child(root, 0)->val;
     FieldList field = NULL;
-    if (look_up(ID) != NULL) {
+    FieldList prefield = look_up(ID);
+    if (prefield != NULL && prefield->type->kind == FUNCTION) {  // function definition already exist
         dump_semantic_error(4, root->line, "Redefined function", ID);
     } else {
         field = (FieldList)malloc(sizeof(struct FieldList_));
