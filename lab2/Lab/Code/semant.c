@@ -344,7 +344,8 @@ Type Exp(Node root) {
     if (root->child_num == 1) {
         if (strcmp(get_child(root, 0)->name, "ID") == 0) {  // Exp -> ID
             result = look_up(get_child(root, 0)->val, false, false);
-            if (result == NULL || result->type->kind == STRUCTTAG) {
+            if (result == NULL || result->type->kind == STRUCTTAG || result->type->kind == FUNCTION ||
+                result->type->kind == FUNCTIONDEC) {
                 dump_semantic_error(1, root->line, "Undefined variable", get_child(root, 0)->val);
             } else {
                 type = result->type;
