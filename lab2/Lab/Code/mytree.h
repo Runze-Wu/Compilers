@@ -16,7 +16,7 @@ struct treenode_ {
     union {                  // 存储对应类型的值
         unsigned val_int;
         float val_float;
-        char var_ID[32];
+        char var_ID[64];
     } data;
     int child_num;
     Node childs[MAX_CHILD_NODES];
