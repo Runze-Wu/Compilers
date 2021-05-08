@@ -1,21 +1,20 @@
 #include "intercode.h"
 
-void init_intercode_list() {
+void init_ir_list() {
     ir_list_head = (InterCodeList)malloc(sizeof(struct InterCodeList_));
     assert(ir_list_head != NULL);
-    ir_list_head->next = ir_list_head;
-    ir_list_head->prev = ir_list_head;
+    ir_list_head->prev = ir_list_head->next = ir_list_head;
 }
 
-void add_ir(InterCode ir) {
-    InterCodeList new_term = (InterCodeList)malloc(sizeof(struct InterCodeList_));
-    assert(new_term != NULL);
-    new_term->code = ir;
-    InterCodeList tail = ir_list_head->prev;
-    tail->next = new_term;
-    new_term->prev = tail;
-    ir_list_head->prev = new_term;
-    new_term->next = ir_list_head;
+InterCodeList add_ir(InterCodeList ir, InterCodeList ir1) {
+    if (ir == NULL) return ir1;
+    if (ir1 == NULL) return ir;
+    InterCodeList tail = ir->prev;
+    tail->next = ir1;
+    ir1->prev = tail;
+    ir->prev = ir1;
+    ir1->next = ir;
+    return ir;
 }
 
 void show_ir_list() {
@@ -32,7 +31,7 @@ void show_ir(InterCode ir) {
         case DEF_LABEL:
         case DEF_FUNC:
         case GOTO:
-        case RETURN:
+        case IR_RETURN:
         case ARG:
         case PARAM:
         case READ:
@@ -50,10 +49,10 @@ void show_ir(InterCode ir) {
             show_op(ir->u.binary_ir.left);
             show_op(ir->u.binary_ir.right);
             break;
-        case ADD:
-        case SUB:
-        case MUL:
-        case DIV:
+        case IR_ADD:
+        case IR_SUB:
+        case IR_MUL:
+        case IR_DIV:
             show_op(ir->u.ternary_ir.res);
             show_op(ir->u.ternary_ir.op1);
             show_op(ir->u.ternary_ir.op2);
@@ -93,7 +92,7 @@ void show_op(Operand op) {
     }
 }
 
-InterCode gen_ir(int ir_kind, Operand op1, Operand op2, Operand op3, int dec_size, char* relop) {
+InterCodeList gen_ir(int ir_kind, Operand op1, Operand op2, Operand op3, int dec_size, char* relop) {
     InterCode res_ir = (InterCode)malloc(sizeof(struct InterCode_));
     assert(res_ir != NULL);
     res_ir->kind = ir_kind;
@@ -101,7 +100,7 @@ InterCode gen_ir(int ir_kind, Operand op1, Operand op2, Operand op3, int dec_siz
         case DEF_LABEL:
         case DEF_FUNC:
         case GOTO:
-        case RETURN:
+        case IR_RETURN:
         case ARG:
         case PARAM:
         case READ:
@@ -119,10 +118,10 @@ InterCode gen_ir(int ir_kind, Operand op1, Operand op2, Operand op3, int dec_siz
             res_ir->u.binary_ir.left = op1;
             res_ir->u.binary_ir.right = op2;
             break;
-        case ADD:
-        case SUB:
-        case MUL:
-        case DIV:
+        case IR_ADD:
+        case IR_SUB:
+        case IR_MUL:
+        case IR_DIV:
             res_ir->u.ternary_ir.res = op1;
             res_ir->u.ternary_ir.op1 = op2;
             res_ir->u.ternary_ir.op2 = op3;
@@ -137,7 +136,11 @@ InterCode gen_ir(int ir_kind, Operand op1, Operand op2, Operand op3, int dec_siz
             assert(0);
             break;
     }
-    return res_ir;
+    InterCodeList res_ir_list = (InterCodeList)malloc(sizeof(struct InterCodeList_));
+    assert(res_ir_list != NULL);
+    res_ir_list->code = res_ir;
+    res_ir_list->prev = res_ir_list->next = res_ir_list;
+    return res_ir_list;
 }
 
 Operand gen_operand(int operand_kind, int val, int number, char* name) {
@@ -165,3 +168,7 @@ Operand gen_operand(int operand_kind, int val, int number, char* name) {
     }
     return res_op;
 }
+
+Operand new_temp() { return gen_operand(TEMP, -1, temp_number++, NULL); }
+
+Operand new_label() { return gen_operand(LABEL, -1, label_number++, NULL); }

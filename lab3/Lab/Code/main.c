@@ -2,6 +2,7 @@
 
 #include "semant.h"
 #include "syntax.tab.h"
+#include "translator.h"
 
 FILE *yyin;                        // This is the file pointer from which the lexer reads its input.
 int lexical_errs = 0;              // 出现的词法错误
@@ -36,6 +37,9 @@ int main(int argc, char **argv) {
         /* Print the AST tree */
         // print_tree(root, 0);
         Program(root);
+    }
+    if (semantic_errs == 0) {
+        translate_Program(root);
     }
     return 0;
 }

@@ -5,18 +5,13 @@
 #include "intercode.h"
 #include "mytree.h"
 
-int temp_number;   // 临时变量编号
-int label_number;  // 跳转编号
-
 void translate_Program(Node root);
 void translate_ExtDefList(Node root);
 void translate_ExtDef(Node root);
-void translate_ExtDecList(Node root);
-
-void translate_Specifier(Node root);
-void translate_StructSpecifier(Node root);
-void translate_OptTag(Node root);
-void translate_Tag(Node root);
+/**
+ * 假设4 没有全局变量,无需考虑ExtDecList
+ * 变量类型在语义分析部分全部完成,无需考虑Specifier
+ */
 
 void translate_VarDec(Node root);
 void translate_FunDec(Node root);
@@ -34,4 +29,6 @@ void translate_Dec(Node root);
 
 void translate_Exp(Node root);
 void translate_Args(Node root);
+
+void translate_Cond(Node root, Operand true_label, Operand false_label);
 #endif
