@@ -15,8 +15,10 @@ void translate_ExtDef(Node root);
 
 void translate_VarDec(Node root);
 void translate_FunDec(Node root);
-void translate_VarList(Node root);
-void translate_ParamDec(Node root);
+/**
+ * 直接获取函数定义的Field,直接获取参数列表
+ * 无需再取考虑VarList ParamDec
+ */
 
 void translate_CompSt(Node root);
 void translate_StmtList(Node root);
@@ -28,9 +30,13 @@ void translate_DecList(Node root);
 void translate_Dec(Node root);
 
 void translate_Exp(Node root, Operand place);
-void translate_Args(Node root);
+ArgList translate_Args(Node root, ArgList arg_list);
 
 void translate_Cond(Node root, Operand true_label, Operand false_label);
 
+int get_size(Type type);  // 获取数组或者结构体的大小
+
 void dump_structure_err();
+
+void dump_translator_node(Node node, char* translator_name);  // debug func
 #endif
