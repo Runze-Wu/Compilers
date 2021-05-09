@@ -17,6 +17,14 @@ void insert_funcfield(char* func_name) {
     field->type->u.function.argv = NULL;
     field->type->u.function.ret = type;
     field->name = (char*)malloc(strlen(func_name) + 1);
+    if (strcmp("write", func_name) == 0) {  // 函数参数为一个INT变量
+        FieldList arg = (FieldList)malloc(sizeof(struct FieldList_));
+        arg->name = "";
+        arg->tail = NULL;
+        arg->type = type;
+        field->type->u.function.argc++;
+        field->type->u.function.argv = arg;
+    }
     strcpy(field->name, func_name);
     insert_field(field);
 }
