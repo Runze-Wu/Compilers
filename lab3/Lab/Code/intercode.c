@@ -1,20 +1,24 @@
 #include "intercode.h"
 
+unsigned int temp_number = 0;   // 临时变量编号
+unsigned int label_number = 0;  // 跳转编号
+
 void init_ir_list() {
     ir_list_head = (InterCodeList)malloc(sizeof(struct InterCodeList_));
     assert(ir_list_head != NULL);
     ir_list_head->prev = ir_list_head->next = ir_list_head;
 }
 
-InterCodeList add_ir(InterCodeList ir, InterCodeList ir1) {
-    if (ir == NULL) return ir1;
-    if (ir1 == NULL) return ir;
-    InterCodeList tail = ir->prev;
-    tail->next = ir1;
-    ir1->prev = tail;
-    ir->prev = ir1;
-    ir1->next = ir;
-    return ir;
+void add_ir(InterCode ir) {
+    if (ir == NULL) return;
+    InterCodeList new_term = (InterCodeList)malloc(sizeof(struct InterCodeList_));
+    assert(new_term != NULL);
+    new_term->code = ir;
+    InterCodeList tail = ir_list_head->prev;
+    tail->next = new_term;
+    new_term->prev = tail;
+    ir_list_head->prev = new_term;
+    new_term->next = ir_list_head;
 }
 
 void show_ir_list() {
@@ -92,7 +96,7 @@ void show_op(Operand op) {
     }
 }
 
-InterCodeList gen_ir(int ir_kind, Operand op1, Operand op2, Operand op3, int dec_size, char* relop) {
+void gen_ir(int ir_kind, Operand op1, Operand op2, Operand op3, int dec_size, char* relop) {
     InterCode res_ir = (InterCode)malloc(sizeof(struct InterCode_));
     assert(res_ir != NULL);
     res_ir->kind = ir_kind;
@@ -105,42 +109,64 @@ InterCodeList gen_ir(int ir_kind, Operand op1, Operand op2, Operand op3, int dec
         case PARAM:
         case READ:
         case WRITE:
-            res_ir->u.unary_ir.op = op1;
+            if (op1 == NULL) {
+                free(res_ir);
+                res_ir = NULL;
+            } else {
+                res_ir->u.unary_ir.op = op1;
+            }
             break;
         case DEC:
-            res_ir->u.dec.op = op1;
-            res_ir->u.dec.size = dec_size;
+            if (op1 == NULL) {
+                free(res_ir);
+                res_ir = NULL;
+            } else {
+                res_ir->u.dec.op = op1;
+                res_ir->u.dec.size = dec_size;
+            }
             break;
         case ASSIGN:
         case GET_ADDR:
         case LOAD:
         case STORE:
-            res_ir->u.binary_ir.left = op1;
-            res_ir->u.binary_ir.right = op2;
+        case CALL:
+            if (op1 == NULL || op2 == NULL) {
+                free(res_ir);
+                res_ir = NULL;
+            } else {
+                res_ir->u.binary_ir.left = op1;
+                res_ir->u.binary_ir.right = op2;
+            }
             break;
         case IR_ADD:
         case IR_SUB:
         case IR_MUL:
         case IR_DIV:
-            res_ir->u.ternary_ir.res = op1;
-            res_ir->u.ternary_ir.op1 = op2;
-            res_ir->u.ternary_ir.op2 = op3;
+            if (op1 == NULL || op2 == NULL || op3 == NULL) {
+                free(res_ir);
+                res_ir = NULL;
+            } else {
+                res_ir->u.ternary_ir.res = op1;
+                res_ir->u.ternary_ir.op1 = op2;
+                res_ir->u.ternary_ir.op2 = op3;
+            }
             break;
         case IF_GOTO:
-            res_ir->u.if_goto.x = op1;
-            res_ir->u.if_goto.y = op2;
-            res_ir->u.if_goto.z = op3;
-            res_ir->u.if_goto.relop = relop;
+            if (op1 == NULL || op2 == NULL || op3 == NULL) {
+                free(res_ir);
+                res_ir = NULL;
+            } else {
+                res_ir->u.if_goto.x = op1;
+                res_ir->u.if_goto.y = op2;
+                res_ir->u.if_goto.z = op3;
+                strcpy(res_ir->u.if_goto.relop, relop);
+            }
             break;
         default:
             assert(0);
             break;
     }
-    InterCodeList res_ir_list = (InterCodeList)malloc(sizeof(struct InterCodeList_));
-    assert(res_ir_list != NULL);
-    res_ir_list->code = res_ir;
-    res_ir_list->prev = res_ir_list->next = res_ir_list;
-    return res_ir_list;
+    add_ir(res_ir);
 }
 
 Operand gen_operand(int operand_kind, int val, int number, char* name) {

@@ -27,8 +27,10 @@ void translate_Def(Node root);
 void translate_DecList(Node root);
 void translate_Dec(Node root);
 
-void translate_Exp(Node root);
+void translate_Exp(Node root, Operand place);
 void translate_Args(Node root);
 
 void translate_Cond(Node root, Operand true_label, Operand false_label);
+
+void dump_structure_err();
 #endif
