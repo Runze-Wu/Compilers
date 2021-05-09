@@ -3,6 +3,8 @@
 #include "hashtab.h"
 #include "mytree.h"
 
+void add_READ_WRITE_func();  // add read write function to hashtable
+
 void Program(Node root);
 void ExtDefList(Node root);
 void ExtDef(Node root);

@@ -1,6 +1,32 @@
 #include "semant.h"
 extern int semantic_errs;
 extern int semantic_debug;
+
+void insert_funcfield(char* func_name) {
+    // 返回值为INT
+    Type type = (Type)malloc(sizeof(struct Type_));
+    type->kind = BASIC;
+    type->u.basic = NUM_INT;
+    type->need_free = false;
+    FieldList field = (FieldList)malloc(sizeof(struct FieldList_));
+    field->tail = NULL;
+    field->type = (Type)malloc(sizeof(struct Type_));
+    field->type->kind = FUNCTION;
+    field->type->need_free = false;
+    field->type->u.function.argc = 0;
+    field->type->u.function.argv = NULL;
+    field->type->u.function.ret = type;
+    field->name = (char*)malloc(strlen(func_name) + 1);
+    strcpy(field->name, func_name);
+    insert_field(field);
+}
+void add_READ_WRITE_func() {
+    // read 函数
+    insert_funcfield("read");
+    // write 函数
+    insert_funcfield("write");
+}
+
 void Program(Node root) {
     init_hashtable();
     if (root == NULL) return;
@@ -8,6 +34,7 @@ void Program(Node root) {
     // Program -> ExtDefList
     dump_node(root);
     assert(root->child_num == 1);
+    add_READ_WRITE_func();
     ExtDefList(get_child(root, 0));
 }
 void ExtDefList(Node root) {
