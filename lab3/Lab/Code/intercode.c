@@ -2,6 +2,7 @@
 
 unsigned int temp_number = 0;   // 临时变量编号
 unsigned int label_number = 0;  // 跳转编号
+extern int translator_debug;
 
 void init_ir_list() {
     ir_list_head = (InterCodeList)malloc(sizeof(struct InterCodeList_));
@@ -90,6 +91,11 @@ void show_ir(InterCode ir, FILE* ir_out) {
             fprintf(ir_out, "*");
             show_op(ir->u.binary_ir.left, ir_out);
             fprintf(ir_out, ":= ");
+            show_op(ir->u.binary_ir.right, ir_out);
+            break;
+        case IR_CALL:
+            show_op(ir->u.binary_ir.left, ir_out);
+            fprintf(ir_out, ":= CALL ");
             show_op(ir->u.binary_ir.right, ir_out);
             break;
         case IR_ADD:
@@ -230,7 +236,7 @@ void gen_ir(int ir_kind, Operand op1, Operand op2, Operand op3, int dec_size, ch
             assert(0);
             break;
     }
-    show_ir(res_ir, stdout);
+    if (translator_debug) show_ir(res_ir, stdout);
     add_ir(res_ir);
 }
 
