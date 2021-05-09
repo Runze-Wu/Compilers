@@ -150,6 +150,7 @@ void translate_Stmt(Node root) {
         Operand label3 = new_label();
         translate_Cond(get_child(root, 2), label1, label2);
         // LABEL label1
+        gen_ir(IR_LABEL, label1, NULL, NULL, -1, NULL);
         translate_Stmt(get_child(root, 4));
         // GOTO label3
         gen_ir(IR_GOTO, label3, NULL, NULL, -1, NULL);
@@ -411,7 +412,8 @@ void translate_Cond(Node root, Operand label_true, Operand label_false) {
         Operand t1 = new_temp();
         translate_Exp(root, t1);
         // IF t1 != #0 GOTO label_true
-        gen_ir(IR_IF_GOTO, t1, gen_operand(OP_TEMP, 0, -1, NULL), label_true, -1, "!=");
+        Operand const_op = gen_operand(OP_CONSTANT, 0, -1, NULL);
+        gen_ir(IR_IF_GOTO, t1, const_op, label_true, -1, "!=");
         // GOTO label_false
         gen_ir(IR_GOTO, label_false, NULL, NULL, -1, NULL);
     }
