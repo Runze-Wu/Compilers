@@ -78,7 +78,7 @@ ID [A-Za-z_][A-Za-z0-9_]*
 <INLINE_COMMENT>\n                  { BEGIN(INITIAL); }
 {SEMI}                              { add_token_node("SEMI", OTHER, NULL);return (SEMI); }
 {COMMA}                             { add_token_node("COMMA", OTHER, NULL);return (COMMA); }
-{RELOP}                             { add_token_node("RELOP", OTHER, NULL);return (RELOP); }
+{RELOP}                             { add_token_node("RELOP", OTHER, yytext);return (RELOP); }
 {ASSIGNOP}                          { add_token_node("ASSIGNOP", OTHER, NULL);return (ASSIGNOP); }
 {PLUS}                              { add_token_node("PLUS", OTHER, NULL);return (PLUS); }
 {MINUS}                             { add_token_node("MINUS", OTHER, NULL);return (MINUS); }
