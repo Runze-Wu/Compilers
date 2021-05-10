@@ -37,6 +37,7 @@ struct FieldList_ {
     char* name;      // 域的名字
     Type type;       // 域的类型
     FieldList tail;  // 下一个域
+    bool arg;        // 函数形参
 };
 
 struct HashNode_ {
