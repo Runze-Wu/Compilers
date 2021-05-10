@@ -11,7 +11,7 @@
 typedef struct Type_* Type;
 typedef struct FieldList_* FieldList;
 typedef struct HashNode_* HashNode;
-HashNode hashtable[HASHTABLE_SIZE];
+HashNode hashtable[HASHTABLE_SIZE + 1];
 
 struct Type_ {
     enum { BASIC, ARRAY, STRUCTURE, STRUCTTAG, FUNCTION } kind;
