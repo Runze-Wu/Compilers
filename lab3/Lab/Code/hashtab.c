@@ -11,7 +11,7 @@ unsigned int hash(char* name) {
         val = (val << 2) + *name;
         if (i = val & ~HASHTABLE_SIZE) val = (val ^ (i >> 12)) & HASHTABLE_SIZE;
     }
-    assert(val < HASHTABLE_SIZE);
+    assert(val <= HASHTABLE_SIZE);
     return val;
 }
 
