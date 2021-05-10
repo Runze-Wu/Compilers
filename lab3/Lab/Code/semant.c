@@ -10,6 +10,7 @@ void insert_funcfield(char* func_name) {
     type->need_free = false;
     FieldList field = (FieldList)malloc(sizeof(struct FieldList_));
     field->tail = NULL;
+    field->arg = false;
     field->type = (Type)malloc(sizeof(struct Type_));
     field->type->kind = FUNCTION;
     field->type->need_free = false;
@@ -20,6 +21,7 @@ void insert_funcfield(char* func_name) {
     if (strcmp("write", func_name) == 0) {  // 函数参数为一个INT变量
         FieldList arg = (FieldList)malloc(sizeof(struct FieldList_));
         arg->name = "";
+        arg->arg = false;
         arg->tail = NULL;
         arg->type = type;
         field->type->u.function.argc++;
@@ -120,6 +122,7 @@ Type StructSpecifier(Node root) {
         }
         field = (FieldList)malloc(sizeof(struct FieldList_));
         field->name = opt_tag;
+        field->arg = false;
         field->tail = NULL;
         field->type = (Type)malloc(sizeof(struct Type_));
         field->type->kind = STRUCTTAG;
@@ -170,6 +173,7 @@ FieldList VarDec(Node root, Type type, FieldList field) {
         var_field->name = ID;
         var_field->type = type;
         var_field->tail = NULL;
+        var_field->arg = false;
         if (field != NULL && field->type->kind == STRUCTTAG) {
             if (have_member(field, ID) != NULL) {
                 dump_semantic_error(15, root->line, "Redefined filed", ID);
@@ -205,6 +209,7 @@ void FunDec(Node root, Type type) {
     } else {
         field = (FieldList)malloc(sizeof(struct FieldList_));
         field->name = ID;
+        field->arg = false;
         field->tail = NULL;
         field->type = (Type)malloc(sizeof(struct Type_));
         field->type->kind = FUNCTION;
@@ -511,6 +516,7 @@ FieldList Args(Node root) {
     args->name = "arg";
     args->type = args_type;
     args->tail = NULL;
+    args->arg = false;
     if (root->child_num == 1) {         // Args -> Exp
     } else if (root->child_num == 3) {  // Args -> Exp COMMA Args
         args->tail = Args(get_child(root, 2));
@@ -578,6 +584,7 @@ void add_struct_member(Node member, Type mem_type, FieldList struct_field) {
     FieldList mem_field = VarDec(member, mem_type, struct_field);
     FieldList temp_field = struct_field->type->u.member;
     if (mem_field == NULL) return;
+    mem_field->arg = false;
     if (struct_field->type->u.member == NULL) {
         struct_field->type->u.member = mem_field;
     } else {
@@ -590,6 +597,7 @@ void add_func_parameter(Node param, FieldList func_field) {
     FieldList arg_field = ParamDec(param);
     if (func_field == NULL || arg_field == NULL) return;
     func_field->type->u.function.argc++;
+    arg_field->arg = true;
     FieldList temp_field = func_field->type->u.function.argv;
     if (func_field->type->u.function.argv == NULL) {
         func_field->type->u.function.argv = arg_field;
