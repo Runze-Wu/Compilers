@@ -663,6 +663,7 @@ void dump_node(Node node) {
 }
 
 void dump_semantic_error(int err_type, int err_line, char* err_msg, char* err_elm) {
+    semantic_errs++;
     printf("Error type %d at Line %d: %s", err_type, err_line, err_msg);
     if (err_elm != NULL) {
         printf(" \"%s\"", err_elm);
