@@ -34,6 +34,10 @@ ArgList translate_Args(Node root, ArgList arg_list);
 
 void translate_Cond(Node root, Operand true_label, Operand false_label);
 
+Operand load_value(Operand addr);
+
+Operand get_addr(Operand addr);
+
 int get_size(Type type);  // 获取数组或者结构体的大小
 
 void dump_structure_err();

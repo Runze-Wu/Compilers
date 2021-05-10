@@ -1,11 +1,7 @@
 #ifndef __INTERCODE_H__
 #define __INTERCODE_H__
 
-#include <assert.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include "semant.h"
 
 typedef struct Operand_* Operand;
 typedef struct InterCode_* InterCode;
@@ -30,6 +26,7 @@ struct Operand_ {
         unsigned int number;     // 临时变量||跳转编号
         char* name;              // 变量名||取地址的变量名||函数名||数组名||结构名
     } u;
+    Type type;  // 数组元素类型
 };
 
 struct InterCode_ {
