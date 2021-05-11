@@ -2,7 +2,9 @@
 
 extern int translator_debug;
 extern int translator_struct;
-extern FILE* ir_out;  // the file pointer from which the translator writes its output.
+extern unsigned int temp_number;   // 临时变量编号
+extern unsigned int label_number;  // 跳转编号
+extern FILE* ir_out;               // the file pointer from which the translator writes its output.
 
 void translate_Program(Node root) {
     init_ir_list();
@@ -383,8 +385,12 @@ void translate_Exp(Node root, Operand place) {
                     } else if (arg_list->arg->kind == OP_ADDRESS) {
                         if (arg_list->arg->type == NULL) {
                             arg_list->arg = load_value(arg_list->arg);
-                        } else if (arg_list->arg->type == BASIC) {
-                            arg_list->arg = get_addr(arg_list->arg);
+                        } else if (arg_list->arg->type->kind == BASIC) {
+                            FieldList arg_field = look_up(arg_list->arg->u.name);
+                            if (arg_field && arg_field->arg) {  // 该数组是作为形参传入该函数，则无需再取地址
+                            } else {
+                                arg_list->arg = get_addr(arg_list->arg);
+                            }
                         } else {  // 高维数组不会作为参数
                             assert(0);
                         }
@@ -412,10 +418,11 @@ void translate_Exp(Node root, Operand place) {
                 // offset :=  t2 * width
                 gen_ir(IR_MUL, offset, t2, width_op, -1, NULL);
             }
-            // 将place设置为ADDRESS类型，名字为数组加_addr后缀
+            // 将place设置为ADDRESS类型，名字为临时变量编号加数组加_addr后缀
             place->kind = OP_ADDRESS;
-            place->u.name = (char*)malloc(strlen(t1->u.name) + 6);
-            strcpy(place->u.name, t1->u.name);
+            place->u.name = (char*)malloc(128);
+            sprintf(place->u.name, "t%d_", temp_number);
+            strcat(place->u.name, t1->u.name);
             strcat(place->u.name, "_addr");
 
             if (t1->kind == OP_ARRAY) {  // Exp1-> ID
@@ -460,7 +467,7 @@ ArgList translate_Args(Node root, ArgList arg_list) {
 void translate_Cond(Node root, Operand label_true, Operand label_false) {
     if (root == NULL) return;
     assert(root->child_num == 1 || root->child_num == 2 || root->child_num == 3 || root->child_num == 4);
-    printf("Translate \e[1;31mCond\e[0m\n");
+    if (translator_debug) printf("Translate \e[1;31mCond\e[0m\n");
     if (strcmp(get_child(root, 0)->name, "NOT") == 0) {  // NOT Exp
         translate_Cond(get_child(root, 1), label_false, label_true);
     } else if (strcmp(get_child(root, 1)->name, "AND") == 0) {  // Exp AND Exp
@@ -538,7 +545,7 @@ int get_size(Type type) {
 void dump_structure_err() {
     if (translator_struct) return;
     printf("Cannot translate: Code contains variables or parameters of structure type.");
-    exit(-1);
+    exit(0);
 }
 
 void dump_translator_node(Node node, char* translator_name) {
