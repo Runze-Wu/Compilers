@@ -27,6 +27,7 @@ struct Operand_ {
         char* name;              // 变量名||取地址的变量名||函数名||数组名||结构名
     } u;
     Type type;  // 数组元素类型
+    int size;   // 数组元素个数
 };
 
 struct InterCode_ {
