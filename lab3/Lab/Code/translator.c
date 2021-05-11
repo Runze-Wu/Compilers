@@ -155,6 +155,7 @@ void translate_Stmt(Node root) {
         Operand label1 = new_label();
         Operand label2 = new_label();
         Operand label3 = new_label();
+        // print_tree(get_child(root, 2), 0);
         translate_Cond(get_child(root, 2), label1, label2);
         // LABEL label1
         gen_ir(IR_LABEL, label1, NULL, NULL, -1, NULL);
@@ -237,14 +238,12 @@ void translate_Exp(Node root, Operand place) {
         Operand label1 = new_label();
         Operand label2 = new_label();
         // place := #0
-        Operand const_op = gen_operand(OP_CONSTANT, 0, -1, NULL);
-        gen_ir(IR_ASSIGN, place, const_op, NULL, -1, NULL);
+        gen_ir(IR_ASSIGN, place, gen_operand(OP_CONSTANT, 0, -1, NULL), NULL, -1, NULL);
         translate_Cond(root, label1, label2);
         // LABEL label1
         gen_ir(IR_LABEL, label1, NULL, NULL, -1, NULL);
         // place := #1
-        const_op->u.const_val = 1;
-        gen_ir(IR_ASSIGN, place, const_op, NULL, -1, NULL);
+        gen_ir(IR_ASSIGN, place, gen_operand(OP_CONSTANT, 1, -1, NULL), NULL, -1, NULL);
         // LABEL label2
         gen_ir(IR_LABEL, label2, NULL, NULL, -1, NULL);
     } else if (root->child_num == 1) {
@@ -270,8 +269,6 @@ void translate_Exp(Node root, Operand place) {
             // place := #value
             place->kind = OP_CONSTANT;
             place->u.const_val = get_child(root, 0)->data.val_int;
-            // Operand const_op = gen_operand(OP_CONSTANT, get_child(root, 0)->data.val_int, -1, NULL);
-            // gen_ir(IR_ASSIGN, place, const_op, NULL, -1, NULL);
         } else {  // 假设1 不存在浮点型常量
             assert(0);
         }
@@ -281,8 +278,7 @@ void translate_Exp(Node root, Operand place) {
             translate_Exp(get_child(root, 1), t1);
             t1 = load_value(t1);
             // place := #0 - t1
-            Operand const_op = gen_operand(OP_CONSTANT, 0, -1, NULL);
-            gen_ir(IR_SUB, place, const_op, t1, -1, NULL);
+            gen_ir(IR_SUB, place, gen_operand(OP_CONSTANT, 0, -1, NULL), t1, -1, NULL);
         }
     } else if (root->child_num == 3) {
         if (strcmp(get_child(root, 0)->name, "LP") == 0) {  // Exp -> LP Exp RP
@@ -333,7 +329,6 @@ void translate_Exp(Node root, Operand place) {
                 gen_ir(IR_STORE, elm_addr, t1, NULL, -1, NULL);
                 // place := t1
                 gen_ir(IR_ASSIGN, place, t1, NULL, -1, NULL);
-                // assert(0);
             } else {
                 assert(0);
             }
@@ -375,8 +370,7 @@ void translate_Exp(Node root, Operand place) {
                 // WRITE arg_list[0]
                 gen_ir(IR_WRITE, arg_list->arg, NULL, NULL, -1, NULL);
                 // place := #0
-                Operand const_op = gen_operand(OP_CONSTANT, 0, -1, NULL);
-                gen_ir(IR_ASSIGN, place, const_op, NULL, -1, NULL);
+                gen_ir(IR_ASSIGN, place, gen_operand(OP_CONSTANT, 0, -1, NULL), NULL, -1, NULL);
             } else {
                 while (arg_list) {
                     // ARG arg_list[0]
@@ -410,13 +404,13 @@ void translate_Exp(Node root, Operand place) {
             translate_Exp(get_child(root, 2), t2);
             t2 = load_value(t2);
             Operand offset = new_temp();
-            Operand width_op = gen_operand(OP_CONSTANT, get_size(t1->type), -1, NULL);
+            int width = get_size(t1->type);
             if (t2->kind == OP_CONSTANT) {
                 offset->kind = OP_CONSTANT;
-                offset->u.const_val = width_op->u.const_val * t2->u.const_val;
+                offset->u.const_val = width * t2->u.const_val;
             } else {
                 // offset :=  t2 * width
-                gen_ir(IR_MUL, offset, t2, width_op, -1, NULL);
+                gen_ir(IR_MUL, offset, t2, gen_operand(OP_CONSTANT, width, -1, NULL), -1, NULL);
             }
             // 将place设置为ADDRESS类型，名字为临时变量编号加数组加_addr后缀
             place->kind = OP_ADDRESS;
@@ -468,19 +462,20 @@ void translate_Cond(Node root, Operand label_true, Operand label_false) {
     if (root == NULL) return;
     assert(root->child_num == 1 || root->child_num == 2 || root->child_num == 3 || root->child_num == 4);
     if (translator_debug) printf("Translate \e[1;31mCond\e[0m\n");
-    if (strcmp(get_child(root, 0)->name, "NOT") == 0) {  // NOT Exp
+
+    if (root->child_num == 2 && strcmp(get_child(root, 0)->name, "NOT") == 0) {  // NOT Exp
         translate_Cond(get_child(root, 1), label_false, label_true);
-    } else if (strcmp(get_child(root, 1)->name, "AND") == 0) {  // Exp AND Exp
+    } else if (root->child_num == 3 && strcmp(get_child(root, 1)->name, "AND") == 0) {  // Exp AND Exp
         Operand label1 = new_label();
         translate_Cond(get_child(root, 0), label1, label_false);
         gen_ir(IR_LABEL, label1, NULL, NULL, -1, NULL);
         translate_Cond(get_child(root, 2), label_true, label_false);
-    } else if (strcmp(get_child(root, 1)->name, "OR") == 0) {  // Exp OR Exp
+    } else if (root->child_num == 3 && strcmp(get_child(root, 1)->name, "OR") == 0) {  // Exp OR Exp
         Operand label1 = new_label();
         translate_Cond(get_child(root, 0), label_true, label1);
         gen_ir(IR_LABEL, label1, NULL, NULL, -1, NULL);
         translate_Cond(get_child(root, 2), label_true, label_false);
-    } else if (strcmp(get_child(root, 1)->name, "RELOP") == 0) {  // Exp RELOP Exp
+    } else if (root->child_num == 3 && strcmp(get_child(root, 1)->name, "RELOP") == 0) {  // Exp RELOP Exp
         Operand t1 = new_temp();
         translate_Exp(get_child(root, 0), t1);
         t1 = load_value(t1);
@@ -497,8 +492,7 @@ void translate_Cond(Node root, Operand label_true, Operand label_false) {
         translate_Exp(root, t1);
         t1 = load_value(t1);
         // IF t1 != #0 GOTO label_true
-        Operand const_op = gen_operand(OP_CONSTANT, 0, -1, NULL);
-        gen_ir(IR_IF_GOTO, t1, const_op, label_true, -1, "!=");
+        gen_ir(IR_IF_GOTO, t1, gen_operand(OP_CONSTANT, 0, -1, NULL), label_true, -1, "!=");
         // GOTO label_false
         gen_ir(IR_GOTO, label_false, NULL, NULL, -1, NULL);
     }
