@@ -261,6 +261,7 @@ void translate_Exp(Node root, Operand place) {
                 // 是否是函数的形式参数，此时ID代表的是其数组地址
                 if (result->arg == true) place->kind = OP_ADDRESS;
                 place->type = result->type->u.array.elem;
+                place->size = result->type->u.array.size;
             } else if (result->type->kind == STRUCTURE) {  // 假设2 不存在结构体变量
                 dump_structure_err();
                 place->kind = OP_STRUCTURE;
@@ -297,22 +298,50 @@ void translate_Exp(Node root, Operand place) {
             dump_structure_err();
         } else if (strcmp(get_child(root, 1)->name, "ASSIGNOP") == 0) {  // Exp ASSIGNOP Exp
             Node node_left = get_child(root, 0);
-            Operand t1 = new_temp();
-            translate_Exp(get_child(root, 2), t1);
-            // 读取地址中的值
-            t1 = load_value(t1);
+            Operand op_right = new_temp();
+            translate_Exp(get_child(root, 2), op_right);
             if (node_left->child_num == 1 && strcmp(get_child(node_left, 0)->name, "ID") == 0) {  // Exp1 -> ID
                 FieldList result = look_up(get_child(node_left, 0)->val);
                 assert(result != NULL);
                 if (result->type->kind == BASIC) {
-                    // variable.name := t1
+                    // 读取地址中的值
+                    op_right = load_value(op_right);
+                    // variable.name := op_right
                     Operand var_op = gen_operand(OP_VARIABLE, -1, -1, get_child(node_left, 0)->val);
-                    gen_ir(IR_ASSIGN, var_op, t1, NULL, -1, NULL);
+                    gen_ir(IR_ASSIGN, var_op, op_right, NULL, -1, NULL);
                     // place := variable.name
                     gen_ir(IR_ASSIGN, place, var_op, NULL, -1, NULL);
                 } else if (result->type->kind == ARRAY) {
                     // 数组互相赋值 TODO
-                    assert(0);
+                    Operand op_left = new_temp();
+                    translate_Exp(get_child(root, 0), op_left);
+                    Operand left_base = get_addr(op_left, false);
+                    Operand right_base = get_addr(op_right, false);
+                    // 拷贝较少数组的元素
+                    int size_left = get_size(op_left->type) * op_left->size;
+                    int size_right = get_size(op_right->type) * op_right->size;
+                    int size = size_left < size_right ? size_left : size_right;
+                    assert(size % 4 == 0);
+                    Operand left = new_temp();
+                    Operand right = new_temp();
+                    for (int i = 0; i < size; i += 4) {
+                        Operand offset = gen_operand(OP_CONSTANT, i, -1, NULL);
+                        // left := base + offset
+                        gen_ir(IR_ADD, left, left_base, offset, -1, NULL);
+                        // right := base + offset
+                        gen_ir(IR_ADD, right, right_base, offset, -1, NULL);
+                        Operand val = new_temp();
+                        // val := *right
+                        gen_ir(IR_LOAD, val, right, NULL, -1, NULL);
+                        // *left := val
+                        gen_ir(IR_STORE, left, val, NULL, -1, NULL);
+                    }
+                    place->kind = OP_ADDRESS;
+                    place->type = op_left->type;
+                    place->u.name = op_left->u.name;
+                    // 返回值为左值数组基地址
+                    // place := left_base
+                    gen_ir(IR_ASSIGN, place, left_base, NULL, -1, NULL);
                 } else if (result->type->kind == STRUCTURE) {  // 假设2 不存在结构体变量
                     dump_structure_err();
                 }
@@ -325,10 +354,12 @@ void translate_Exp(Node root, Operand place) {
                 Operand elm_addr = new_temp();
                 translate_Exp(node_left, elm_addr);
                 assert(elm_addr->kind == OP_ADDRESS);
-                // *elm_addr := t1
-                gen_ir(IR_STORE, elm_addr, t1, NULL, -1, NULL);
-                // place := t1
-                gen_ir(IR_ASSIGN, place, t1, NULL, -1, NULL);
+                // 读取地址中的值
+                op_right = load_value(op_right);
+                // *elm_addr := op_right
+                gen_ir(IR_STORE, elm_addr, op_right, NULL, -1, NULL);
+                // place := op_right
+                gen_ir(IR_ASSIGN, place, op_right, NULL, -1, NULL);
             } else {
                 assert(0);
             }
@@ -373,18 +404,14 @@ void translate_Exp(Node root, Operand place) {
                 gen_ir(IR_ASSIGN, place, gen_operand(OP_CONSTANT, 0, -1, NULL), NULL, -1, NULL);
             } else {
                 while (arg_list) {
-                    // ARG arg_list[0]
+                    // ARG arg_list[i]
                     if (arg_list->arg->kind == OP_ARRAY) {
-                        arg_list->arg = get_addr(arg_list->arg);
+                        arg_list->arg = get_addr(arg_list->arg, true);
                     } else if (arg_list->arg->kind == OP_ADDRESS) {
-                        if (arg_list->arg->type == NULL) {
+                        if (arg_list->arg->type == NULL) {  // 参数是数值
                             arg_list->arg = load_value(arg_list->arg);
-                        } else if (arg_list->arg->type->kind == BASIC) {
-                            FieldList arg_field = look_up(arg_list->arg->u.name);
-                            if (arg_field && arg_field->arg) {  // 该数组是作为形参传入该函数，则无需再取地址
-                            } else {
-                                arg_list->arg = get_addr(arg_list->arg);
-                            }
+                        } else if (arg_list->arg->type->kind == BASIC) {  // 参数是一维数组
+                            arg_list->arg = get_addr(arg_list->arg, true);
                         } else {  // 高维数组不会作为参数
                             assert(0);
                         }
@@ -433,8 +460,10 @@ void translate_Exp(Node root, Operand place) {
             }
             if (t1->type->kind == BASIC) {  // 数组解析完毕
                 place->type = NULL;
+                place->size = 0;
             } else if (t1->type->kind == ARRAY) {
                 place->type = t1->type->u.array.elem;
+                place->size = t1->type->u.array.size;
             }
         }
     }
@@ -506,8 +535,19 @@ Operand load_value(Operand addr) {
     return place;
 }
 
-Operand get_addr(Operand addr) {
+Operand get_addr(Operand addr, bool is_arg) {
     if (addr->kind != OP_ADDRESS && addr->kind != OP_ARRAY) return addr;
+    if (addr->kind == OP_ADDRESS) {
+        FieldList arg_field = look_up(addr->u.name);
+        if (is_arg) {  // 作为实际参数,进行函数调用
+            // 该数组是当前函数的形参,无需再取地址
+            if (arg_field && arg_field->arg) {
+                return addr;
+            }
+        } else {  // 不是实际参数,同样无需取地址
+            return addr;
+        }
+    }
     Operand place = new_temp();
     // place := &addr
     gen_ir(IR_ADDR, place, addr, NULL, -1, NULL);

@@ -36,7 +36,7 @@ void translate_Cond(Node root, Operand true_label, Operand false_label);
 
 Operand load_value(Operand addr);
 
-Operand get_addr(Operand addr);
+Operand get_addr(Operand addr, bool is_arg);  // 获取数组的地址，以及该数组是否需要作为实参区分处理
 
 int get_size(Type type);  // 获取数组或者结构体的大小
 
