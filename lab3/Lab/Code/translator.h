@@ -13,7 +13,7 @@ void translate_ExtDef(Node root);
  * 变量类型在语义分析部分全部完成,无需考虑Specifier
  */
 
-void translate_VarDec(Node root);
+Operand translate_VarDec(Node root);  // 返回变量OP
 void translate_FunDec(Node root);
 /**
  * 直接获取函数定义的Field,直接获取参数列表
@@ -33,6 +33,8 @@ void translate_Exp(Node root, Operand place);
 ArgList translate_Args(Node root, ArgList arg_list);
 
 void translate_Cond(Node root, Operand true_label, Operand false_label);
+
+Operand array_deep_copy(Operand op_left, Operand op_right);  // 数组深拷贝
 
 Operand load_value(Operand addr);
 
