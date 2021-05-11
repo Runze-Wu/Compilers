@@ -1,0 +1,22 @@
+{
+    "tasks": [
+        {
+            "type": "cppbuild",
+            "label": "build",
+            "command": "./debug.sh",
+            "args": [],
+            "options": {
+                "cwd": "${workspaceFolder}/lab3/Lab/Code"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "detail": "调试器生成的任务。"
+        }
+    ],
+    "version": "2.0.0"
+}
