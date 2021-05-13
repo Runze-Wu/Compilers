@@ -401,6 +401,7 @@ void translate_Exp(Node root, Operand place) {
             // 数组处理 TODO
             Operand t1 = new_temp();
             translate_Exp(get_child(root, 0), t1);
+            assert(t1->kind == OP_ARRAY || t1->kind == OP_ADDRESS);
             Operand t2 = new_temp();
             translate_Exp(get_child(root, 2), t2);
             t2 = load_value(t2);
@@ -413,12 +414,11 @@ void translate_Exp(Node root, Operand place) {
                 // offset :=  t2 * width
                 gen_ir(IR_MUL, offset, t2, gen_operand(OP_CONSTANT, width, -1, NULL), -1, NULL);
             }
-            // 将place设置为ADDRESS类型，名字为临时变量编号加数组加_addr后缀
+
+            // 将place设置为ADDRESS类型，名字为临时变量编号
             place->kind = OP_ADDRESS;
-            place->u.name = (char*)malloc(128);
-            sprintf(place->u.name, "t%d_", temp_number);
-            strcat(place->u.name, t1->u.name);
-            strcat(place->u.name, "_addr");
+            place->u.name = (char*)malloc(32);
+            sprintf(place->u.name, "t%d", temp_number++);
 
             if (t1->kind == OP_ARRAY) {  // Exp1-> ID
                 Operand base = new_temp();
@@ -432,6 +432,7 @@ void translate_Exp(Node root, Operand place) {
             } else {
                 assert(0);
             }
+
             if (t1->type->kind == BASIC) {  // 数组解析完毕
                 place->type = NULL;
                 place->size = 0;
