@@ -269,13 +269,3 @@ Operand gen_operand(int operand_kind, int val, int number, char* name) {
 Operand new_temp() { return gen_operand(OP_TEMP, -1, temp_number++, NULL); }
 
 Operand new_label() { return gen_operand(OP_LABEL, -1, label_number++, NULL); }
-
-ArgList add_arg(ArgList head, Operand arg) {
-    if (arg == NULL) return head;
-    ArgList new_term = (ArgList)malloc(sizeof(struct ArgList_));
-    assert(new_term != NULL);
-    new_term->arg = arg;
-    new_term->next = head;
-    head = new_term;
-    return head;  // 返回链表头
-}

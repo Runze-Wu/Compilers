@@ -6,7 +6,6 @@
 typedef struct Operand_* Operand;
 typedef struct InterCode_* InterCode;
 typedef struct InterCodeList_* InterCodeList;
-typedef struct ArgList_* ArgList;
 InterCodeList ir_list_head;  // 循环双向链表头
 unsigned int temp_number;    // 临时变量编号
 unsigned int label_number;   // 跳转编号
@@ -78,11 +77,6 @@ struct InterCodeList_ {  // 双向链表存储IR
     InterCodeList prev, next;
 };
 
-struct ArgList_ {  // 参数链表
-    Operand arg;
-    ArgList next;
-};
-
 void init_ir_list();                       // 初始化IR双向链表头
 void add_ir(InterCode ir);                 // 将ir1添加到ir尾部,返回表头
 void show_ir_list(FILE* ir_out);           // 打印IR链表
@@ -92,5 +86,4 @@ void gen_ir(int ir_kind, Operand op1, Operand op2, Operand op3, int dec_size, ch
 Operand gen_operand(int operand_kind, int val, int no, char* name);                          // 产生Operand
 Operand new_temp();                                                                          // 产生一个临时变量
 Operand new_label();                                                                         // 产生一个跳转标记
-ArgList add_arg(ArgList head, Operand arg);                                                  // 将arg设为链表head
 #endif
