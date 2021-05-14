@@ -564,7 +564,7 @@ int get_size(Type type) {
 void dump_structure_err() {
     if (translator_struct) return;
     printf("Cannot translate: Code contains variables or parameters of structure type.");
-    exit(0);
+    exit(-1);
 }
 
 void dump_translator_node(Node node, char* translator_name) {
