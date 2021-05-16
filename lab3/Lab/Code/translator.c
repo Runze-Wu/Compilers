@@ -279,8 +279,12 @@ void translate_Exp(Node root, Operand place) {
             Operand t1 = new_temp();
             translate_Exp(get_child(root, 1), t1);
             t1 = load_value(t1);
-            // place := #0 - t1
-            gen_ir(IR_SUB, place, gen_operand(OP_CONSTANT, 0, -1, NULL), t1, -1, NULL);
+            if (t1->kind == OP_CONSTANT) {
+                place->kind = OP_CONSTANT;
+                place->u.const_val = -1 * t1->u.const_val;
+            } else {  // place := #0 - t1
+                gen_ir(IR_SUB, place, gen_operand(OP_CONSTANT, 0, -1, NULL), t1, -1, NULL);
+            }
         }
     } else if (root->child_num == 3) {
         if (strcmp(get_child(root, 0)->name, "LP") == 0) {  // Exp -> LP Exp RP
@@ -360,9 +364,31 @@ void translate_Exp(Node root, Operand place) {
                 ir_kind = IR_MUL;
             } else if (strcmp(get_child(root, 1)->name, "DIV") == 0) {
                 ir_kind = IR_DIV;
+            } else {
+                assert(0);
             }
-            // place := t1 op t2
-            gen_ir(ir_kind, place, t1, t2, -1, NULL);
+            if (t1->kind == OP_CONSTANT && t2->kind == OP_CONSTANT) {
+                int val;
+                switch (ir_kind) {
+                    case IR_ADD:
+                        val = t1->u.const_val + t2->u.const_val;
+                        break;
+                    case IR_SUB:
+                        val = t1->u.const_val - t2->u.const_val;
+                        break;
+                    case IR_MUL:
+                        val = t1->u.const_val * t2->u.const_val;
+                        break;
+                    case IR_DIV:
+                        val = t1->u.const_val / t2->u.const_val;
+                        break;
+                }
+                place->kind = OP_CONSTANT;
+                place->u.const_val = val;
+            } else {
+                // place := t1 op t2
+                gen_ir(ir_kind, place, t1, t2, -1, NULL);
+            }
         }
     } else if (root->child_num == 4) {
         if (strcmp(get_child(root, 0)->name, "ID") == 0) {  // Exp -> ID LP Args RP
