@@ -304,46 +304,28 @@ void translate_Exp(Node root, Operand place) {
         } else if (strcmp(get_child(root, 1)->name, "DOT") == 0) {  // Exp -> Exp DOT ID
             dump_structure_err();
         } else if (strcmp(get_child(root, 1)->name, "ASSIGNOP") == 0) {  // Exp ASSIGNOP Exp
-            Node node_left = get_child(root, 0);
             Operand op_left = new_temp();
             translate_Exp(get_child(root, 0), op_left);
             Operand op_right = new_temp();
             translate_Exp(get_child(root, 2), op_right);
-            if (node_left->child_num == 1 && strcmp(get_child(node_left, 0)->name, "ID") == 0) {  // Exp1 -> ID
-                FieldList result = look_up(op_left->u.name);
-                assert(result != NULL);
-                if (result->type->kind == BASIC) {
-                    // 读取地址中的值
-                    op_right = load_value(op_right);
-                    // variable.name := op_right
-                    Operand var_op = gen_operand(OP_VARIABLE, -1, -1, op_left->u.name);
-                    gen_ir(global_ir_list_head, IR_ASSIGN, var_op, op_right, NULL, -1, NULL);
-                    // place := variable.name
-                    gen_ir(global_ir_list_head, IR_ASSIGN, place, var_op, NULL, -1, NULL);
-                } else if (result->type->kind == ARRAY) {
-                    // 数组互相赋值 TODO
-                    Operand left_base = array_deep_copy(op_left, op_right);
-                } else if (result->type->kind == STRUCTURE) {  // 假设2 不存在结构体变量
-                    dump_structure_err();
+            if (op_left->kind == OP_ADDRESS || op_left->kind == OP_ARRAY) {  // 左值为数组或者地址
+                // arr_a=arr_b||*addr_a=val_b||*addr_a=*addr_b;
+                if (op_right->kind == OP_ADDRESS || op_right->kind == OP_ARRAY) {  // 数组赋值
+                    array_deep_copy(op_left, op_right);
+                } else {  // 单值写地址
+                    assert(op_left->kind == OP_ADDRESS);
+                    // *op_left := op_right
+                    gen_ir(global_ir_list_head, IR_STORE, op_left, op_right, NULL, -1, NULL);
                 }
-            } else if (node_left->child_num == 3 &&
-                       strcmp(get_child(node_left, 1)->name, "DOT") == 0) {  // 假设2 不存在结构体变量
-                dump_structure_err();
-            } else if (node_left->child_num == 4 &&
-                       strcmp(get_child(node_left, 0)->name, "Exp") == 0) {  // Exp1 -> Exp2 LB Exp3 RB
-                // 访问数组元素 TODO
-                Operand elm_addr = new_temp();
-                translate_Exp(node_left, elm_addr);
-                assert(elm_addr->kind == OP_ADDRESS);
+            } else {  // 左值为普通变量
                 // 读取地址中的值
                 op_right = load_value(op_right);
-                // *elm_addr := op_right
-                gen_ir(global_ir_list_head, IR_STORE, elm_addr, op_right, NULL, -1, NULL);
-                // place := op_right
-                gen_ir(global_ir_list_head, IR_ASSIGN, place, op_right, NULL, -1, NULL);
-            } else {
-                assert(0);
+                // op_left := op_right
+                gen_ir(global_ir_list_head, IR_ASSIGN, op_left, op_right, NULL, -1, NULL);
             }
+            // place := op_left
+            place->kind = op_left->kind;
+            place->u = op_left->u;
         } else {
             /**
              * Exp -> Exp PLUS Exp
@@ -382,7 +364,8 @@ void translate_Exp(Node root, Operand place) {
                         val = t1->u.const_val * t2->u.const_val;
                         break;
                     case IR_DIV:
-                        val = t1->u.const_val / t2->u.const_val;
+                        // 除零溢出
+                        val = t2->u.const_val ? t1->u.const_val / t2->u.const_val : 0;
                         break;
                 }
                 place->kind = OP_CONSTANT;
@@ -399,7 +382,8 @@ void translate_Exp(Node root, Operand place) {
             if (strcmp(function->name, "write") == 0) {
                 translate_Args(get_child(root, 2), true);
                 // place := #0
-                gen_ir(global_ir_list_head, IR_ASSIGN, place, gen_operand(OP_CONSTANT, 0, -1, NULL), NULL, -1, NULL);
+                place->kind = OP_CONSTANT;
+                place->u.const_val = 0;
             } else {
                 translate_Args(get_child(root, 2), false);
                 // place := CALL function.name
@@ -430,11 +414,15 @@ void translate_Exp(Node root, Operand place) {
             sprintf(place->u.name, "t%d", temp_number++);
 
             if (t1->kind == OP_ARRAY) {  // Exp1-> ID
-                Operand base = new_temp();
-                // base := &addr
-                gen_ir(global_ir_list_head, IR_ADDR, base, t1, NULL, -1, NULL);
-                // place := base + offset
-                gen_ir(global_ir_list_head, IR_ADD, place, base, offset, -1, NULL);
+                if (offset->kind == OP_CONSTANT && offset->u.const_val == 0) {
+                    gen_ir(global_ir_list_head, IR_ADDR, place, t1, NULL, -1, NULL);
+                } else {
+                    Operand base = new_temp();
+                    // base := &addr
+                    gen_ir(global_ir_list_head, IR_ADDR, base, t1, NULL, -1, NULL);
+                    // place := base + offset
+                    gen_ir(global_ir_list_head, IR_ADD, place, base, offset, -1, NULL);
+                }
             } else if (t1->kind == OP_ADDRESS) {  // Exp1 -> Exp LB Exp RB
                 // place := t1 + offset
                 gen_ir(global_ir_list_head, IR_ADD, place, t1, offset, -1, NULL);
@@ -536,13 +524,17 @@ Operand array_deep_copy(Operand op_left, Operand op_right) {
     assert(size % 4 == 0);
     Operand left = new_temp();
     Operand right = new_temp();
-    for (int i = 0; i < size; i += 4) {
+    Operand val = new_temp();
+    // val := *right
+    gen_ir(global_ir_list_head, IR_LOAD, val, right_base, NULL, -1, NULL);
+    // *left := val
+    gen_ir(global_ir_list_head, IR_STORE, left_base, val, NULL, -1, NULL);
+    for (int i = 1; i < size; i += 4) {
         Operand offset = gen_operand(OP_CONSTANT, i, -1, NULL);
         // left := base + offset
         gen_ir(global_ir_list_head, IR_ADD, left, left_base, offset, -1, NULL);
         // right := base + offset
         gen_ir(global_ir_list_head, IR_ADD, right, right_base, offset, -1, NULL);
-        Operand val = new_temp();
         // val := *right
         gen_ir(global_ir_list_head, IR_LOAD, val, right, NULL, -1, NULL);
         // *left := val
