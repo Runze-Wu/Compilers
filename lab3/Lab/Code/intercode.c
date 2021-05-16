@@ -4,13 +4,14 @@ unsigned int temp_number = 0;   // 临时变量编号
 unsigned int label_number = 0;  // 跳转编号
 extern int translator_debug;
 
-void init_ir_list() {
-    ir_list_head = (InterCodeList)malloc(sizeof(struct InterCodeList_));
+InterCodeList init_ir_list() {
+    InterCodeList ir_list_head = (InterCodeList)malloc(sizeof(struct InterCodeList_));
     assert(ir_list_head != NULL);
     ir_list_head->prev = ir_list_head->next = ir_list_head;
+    return ir_list_head;
 }
 
-void add_ir(InterCode ir) {
+void add_ir(InterCodeList ir_list_head, InterCode ir) {
     if (ir == NULL) return;
     InterCodeList new_term = (InterCodeList)malloc(sizeof(struct InterCodeList_));
     assert(new_term != NULL);
@@ -22,7 +23,7 @@ void add_ir(InterCode ir) {
     new_term->next = ir_list_head;
 }
 
-void show_ir_list(FILE* ir_out) {
+void show_ir_list(FILE* ir_out, InterCodeList ir_list_head) {
     InterCodeList cur = ir_list_head->next;
     while (cur != ir_list_head) {
         show_ir(cur->code, ir_out);
@@ -158,7 +159,7 @@ void show_op(Operand op, FILE* ir_out) {
             fprintf(ir_out, "t%d ", op->u.number);
             break;
         case OP_CONSTANT:
-            fprintf(ir_out, "#%u ", op->u.const_val);
+            fprintf(ir_out, "#%d ", op->u.const_val);
             break;
         default:
             assert(0);
@@ -166,7 +167,7 @@ void show_op(Operand op, FILE* ir_out) {
     }
 }
 
-void gen_ir(int ir_kind, Operand op1, Operand op2, Operand op3, int dec_size, char* relop) {
+void gen_ir(InterCodeList ir_list_head, int ir_kind, Operand op1, Operand op2, Operand op3, int dec_size, char* relop) {
     InterCode res_ir = (InterCode)malloc(sizeof(struct InterCode_));
     assert(res_ir != NULL);
     res_ir->kind = ir_kind;
@@ -237,7 +238,7 @@ void gen_ir(int ir_kind, Operand op1, Operand op2, Operand op3, int dec_size, ch
             break;
     }
     if (translator_debug) show_ir(res_ir, stdout);
-    add_ir(res_ir);
+    add_ir(ir_list_head, res_ir);
 }
 
 Operand gen_operand(int operand_kind, int val, int number, char* name) {

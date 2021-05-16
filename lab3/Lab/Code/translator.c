@@ -2,18 +2,20 @@
 
 extern int translator_debug;
 extern int translator_struct;
-extern unsigned int temp_number;   // 临时变量编号
-extern unsigned int label_number;  // 跳转编号
-extern FILE* ir_out;               // the file pointer from which the translator writes its output.
+extern unsigned int temp_number;           // 临时变量编号
+extern unsigned int label_number;          // 跳转编号
+extern FILE* ir_out;                       // the file pointer from which the translator writes its output.
+extern InterCodeList global_ir_list_head;  // 循环双向链表头
 
 void translate_Program(Node root) {
-    init_ir_list();
+    global_ir_list_head = init_ir_list();
+    assert(global_ir_list_head != NULL);
     if (root == NULL) return;
     dump_translator_node(root, "Program");
     // Program -> ExtDefList
     assert(root->child_num == 1);
     translate_ExtDefList(get_child(root, 0));
-    show_ir_list(ir_out);
+    show_ir_list(ir_out, global_ir_list_head);
 }
 
 void translate_ExtDefList(Node root) {
@@ -57,7 +59,7 @@ Operand translate_VarDec(Node root) {
             name_op->size = res->type->u.array.size;
             int dec_size = get_size(res->type);
             // DEC variable.name size
-            gen_ir(IR_DEC, name_op, NULL, NULL, dec_size, NULL);
+            gen_ir(global_ir_list_head, IR_DEC, name_op, NULL, NULL, dec_size, NULL);
         } else if (res->type->kind == BASIC) {  // 基础类型变量
             name_op = gen_operand(OP_VARIABLE, -1, -1, var_name);
         } else if (res->type->kind == STRUCTURE) {  // 不应出现结构体变量
@@ -65,7 +67,7 @@ Operand translate_VarDec(Node root) {
             name_op = gen_operand(OP_STRUCTURE, -1, -1, var_name);
             int dec_size = get_size(res->type);
             // DEC variable.name size
-            gen_ir(IR_DEC, name_op, NULL, NULL, dec_size, NULL);
+            gen_ir(global_ir_list_head, IR_DEC, name_op, NULL, NULL, dec_size, NULL);
         } else {  // 不应出现函数或者结构体定义类型
             assert(0);
         }
@@ -85,14 +87,14 @@ void translate_FunDec(Node root) {
     assert(func_field != NULL);
     // FUNCTION func.name
     Operand func_op = gen_operand(OP_FUNCTION, -1, -1, func_name);
-    gen_ir(IR_FUNC, func_op, NULL, NULL, -1, NULL);
+    gen_ir(global_ir_list_head, IR_FUNC, func_op, NULL, NULL, -1, NULL);
     if (root->child_num == 3) {         // FunDec -> ID LP RP
     } else if (root->child_num == 4) {  // FunDec -> ID LP VarList RP
         FieldList arg_field = func_field->type->u.function.argv;
         while (arg_field) {
             // PARAM arg.name
             Operand arg_op = gen_operand(OP_VARIABLE, -1, -1, arg_field->name);
-            gen_ir(IR_PARAM, arg_op, NULL, NULL, -1, NULL);
+            gen_ir(global_ir_list_head, IR_PARAM, arg_op, NULL, NULL, -1, NULL);
             arg_field = arg_field->tail;
         }
     }
@@ -130,31 +132,31 @@ void translate_Stmt(Node root) {
         translate_Exp(get_child(root, 1), t1);
         t1 = load_value(t1);
         // RETURN t1
-        gen_ir(IR_RETURN, t1, NULL, NULL, -1, NULL);
+        gen_ir(global_ir_list_head, IR_RETURN, t1, NULL, NULL, -1, NULL);
     } else if (root->child_num == 5) {
         if (strcmp(get_child(root, 0)->name, "IF") == 0) {  // Stmt -> IF LP Exp RP Stmt
             Operand label1 = new_label();
             Operand label2 = new_label();
             translate_Cond(get_child(root, 2), label1, label2);
             // LABEL label1
-            gen_ir(IR_LABEL, label1, NULL, NULL, -1, NULL);
+            gen_ir(global_ir_list_head, IR_LABEL, label1, NULL, NULL, -1, NULL);
             translate_Stmt(get_child(root, 4));
             // LABEL label2
-            gen_ir(IR_LABEL, label2, NULL, NULL, -1, NULL);
+            gen_ir(global_ir_list_head, IR_LABEL, label2, NULL, NULL, -1, NULL);
         } else if (strcmp(get_child(root, 0)->name, "WHILE") == 0) {  // Stmt -> WHILE LP Exp RP Stmt
             Operand label1 = new_label();
             Operand label2 = new_label();
             Operand label3 = new_label();
             // LABEL label1
-            gen_ir(IR_LABEL, label1, NULL, NULL, -1, NULL);
+            gen_ir(global_ir_list_head, IR_LABEL, label1, NULL, NULL, -1, NULL);
             translate_Cond(get_child(root, 2), label2, label3);
             // LABEL label2
-            gen_ir(IR_LABEL, label2, NULL, NULL, -1, NULL);
+            gen_ir(global_ir_list_head, IR_LABEL, label2, NULL, NULL, -1, NULL);
             translate_Stmt(get_child(root, 4));
             // GOTO label1
-            gen_ir(IR_GOTO, label1, NULL, NULL, -1, NULL);
+            gen_ir(global_ir_list_head, IR_GOTO, label1, NULL, NULL, -1, NULL);
             // LABEL label3
-            gen_ir(IR_LABEL, label3, NULL, NULL, -1, NULL);
+            gen_ir(global_ir_list_head, IR_LABEL, label3, NULL, NULL, -1, NULL);
         }
     } else if (root->child_num == 7) {  // Stmt -> IF LP Exp RP Stmt ELSE Stmt
         Operand label1 = new_label();
@@ -163,15 +165,15 @@ void translate_Stmt(Node root) {
         // print_tree(get_child(root, 2), 0);
         translate_Cond(get_child(root, 2), label1, label2);
         // LABEL label1
-        gen_ir(IR_LABEL, label1, NULL, NULL, -1, NULL);
+        gen_ir(global_ir_list_head, IR_LABEL, label1, NULL, NULL, -1, NULL);
         translate_Stmt(get_child(root, 4));
         // GOTO label3
-        gen_ir(IR_GOTO, label3, NULL, NULL, -1, NULL);
+        gen_ir(global_ir_list_head, IR_GOTO, label3, NULL, NULL, -1, NULL);
         // LABEL label2
-        gen_ir(IR_LABEL, label2, NULL, NULL, -1, NULL);
+        gen_ir(global_ir_list_head, IR_LABEL, label2, NULL, NULL, -1, NULL);
         translate_Stmt(get_child(root, 6));
         // LABEL label3
-        gen_ir(IR_LABEL, label3, NULL, NULL, -1, NULL);
+        gen_ir(global_ir_list_head, IR_LABEL, label3, NULL, NULL, -1, NULL);
     }
 }
 
@@ -217,7 +219,7 @@ void translate_Dec(Node root) {
         } else if (name_op->kind == OP_VARIABLE) {  // 基础类型变量初始化
             t1 = load_value(t1);
             // variable.name := t1
-            gen_ir(IR_ASSIGN, name_op, t1, NULL, -1, NULL);
+            gen_ir(global_ir_list_head, IR_ASSIGN, name_op, t1, NULL, -1, NULL);
         }
     }
 }
@@ -239,14 +241,14 @@ void translate_Exp(Node root, Operand place) {
         Operand label1 = new_label();
         Operand label2 = new_label();
         // place := #0
-        gen_ir(IR_ASSIGN, place, gen_operand(OP_CONSTANT, 0, -1, NULL), NULL, -1, NULL);
+        gen_ir(global_ir_list_head, IR_ASSIGN, place, gen_operand(OP_CONSTANT, 0, -1, NULL), NULL, -1, NULL);
         translate_Cond(root, label1, label2);
         // LABEL label1
-        gen_ir(IR_LABEL, label1, NULL, NULL, -1, NULL);
+        gen_ir(global_ir_list_head, IR_LABEL, label1, NULL, NULL, -1, NULL);
         // place := #1
-        gen_ir(IR_ASSIGN, place, gen_operand(OP_CONSTANT, 1, -1, NULL), NULL, -1, NULL);
+        gen_ir(global_ir_list_head, IR_ASSIGN, place, gen_operand(OP_CONSTANT, 1, -1, NULL), NULL, -1, NULL);
         // LABEL label2
-        gen_ir(IR_LABEL, label2, NULL, NULL, -1, NULL);
+        gen_ir(global_ir_list_head, IR_LABEL, label2, NULL, NULL, -1, NULL);
     } else if (root->child_num == 1) {
         // 优化： 不再生成 t := v,而是将t改成v
         if (strcmp(get_child(root, 0)->name, "ID") == 0) {  // Exp -> ID
@@ -283,7 +285,7 @@ void translate_Exp(Node root, Operand place) {
                 place->kind = OP_CONSTANT;
                 place->u.const_val = -1 * t1->u.const_val;
             } else {  // place := #0 - t1
-                gen_ir(IR_SUB, place, gen_operand(OP_CONSTANT, 0, -1, NULL), t1, -1, NULL);
+                gen_ir(global_ir_list_head, IR_SUB, place, gen_operand(OP_CONSTANT, 0, -1, NULL), t1, -1, NULL);
             }
         }
     } else if (root->child_num == 3) {
@@ -293,11 +295,11 @@ void translate_Exp(Node root, Operand place) {
             FieldList function = look_up(get_child(root, 0)->val);
             assert(function != NULL);
             if (strcmp(function->name, "read") == 0) {  // READ place
-                gen_ir(IR_READ, place, NULL, NULL, -1, NULL);
+                gen_ir(global_ir_list_head, IR_READ, place, NULL, NULL, -1, NULL);
             } else {
                 // place := CALL function.name
                 Operand func_op = gen_operand(OP_FUNCTION, -1, -1, function->name);
-                gen_ir(IR_CALL, place, func_op, NULL, -1, NULL);
+                gen_ir(global_ir_list_head, IR_CALL, place, func_op, NULL, -1, NULL);
             }
         } else if (strcmp(get_child(root, 1)->name, "DOT") == 0) {  // Exp -> Exp DOT ID
             dump_structure_err();
@@ -315,9 +317,9 @@ void translate_Exp(Node root, Operand place) {
                     op_right = load_value(op_right);
                     // variable.name := op_right
                     Operand var_op = gen_operand(OP_VARIABLE, -1, -1, op_left->u.name);
-                    gen_ir(IR_ASSIGN, var_op, op_right, NULL, -1, NULL);
+                    gen_ir(global_ir_list_head, IR_ASSIGN, var_op, op_right, NULL, -1, NULL);
                     // place := variable.name
-                    gen_ir(IR_ASSIGN, place, var_op, NULL, -1, NULL);
+                    gen_ir(global_ir_list_head, IR_ASSIGN, place, var_op, NULL, -1, NULL);
                 } else if (result->type->kind == ARRAY) {
                     // 数组互相赋值 TODO
                     Operand left_base = array_deep_copy(op_left, op_right);
@@ -336,9 +338,9 @@ void translate_Exp(Node root, Operand place) {
                 // 读取地址中的值
                 op_right = load_value(op_right);
                 // *elm_addr := op_right
-                gen_ir(IR_STORE, elm_addr, op_right, NULL, -1, NULL);
+                gen_ir(global_ir_list_head, IR_STORE, elm_addr, op_right, NULL, -1, NULL);
                 // place := op_right
-                gen_ir(IR_ASSIGN, place, op_right, NULL, -1, NULL);
+                gen_ir(global_ir_list_head, IR_ASSIGN, place, op_right, NULL, -1, NULL);
             } else {
                 assert(0);
             }
@@ -387,7 +389,7 @@ void translate_Exp(Node root, Operand place) {
                 place->u.const_val = val;
             } else {
                 // place := t1 op t2
-                gen_ir(ir_kind, place, t1, t2, -1, NULL);
+                gen_ir(global_ir_list_head, ir_kind, place, t1, t2, -1, NULL);
             }
         }
     } else if (root->child_num == 4) {
@@ -397,12 +399,12 @@ void translate_Exp(Node root, Operand place) {
             if (strcmp(function->name, "write") == 0) {
                 translate_Args(get_child(root, 2), true);
                 // place := #0
-                gen_ir(IR_ASSIGN, place, gen_operand(OP_CONSTANT, 0, -1, NULL), NULL, -1, NULL);
+                gen_ir(global_ir_list_head, IR_ASSIGN, place, gen_operand(OP_CONSTANT, 0, -1, NULL), NULL, -1, NULL);
             } else {
                 translate_Args(get_child(root, 2), false);
                 // place := CALL function.name
                 Operand func_op = gen_operand(OP_FUNCTION, -1, -1, function->name);
-                gen_ir(IR_CALL, place, func_op, NULL, -1, NULL);
+                gen_ir(global_ir_list_head, IR_CALL, place, func_op, NULL, -1, NULL);
             }
         } else if (strcmp(get_child(root, 0)->name, "Exp") == 0) {  // Exp -> Exp LB Exp RB
             // 数组处理 TODO
@@ -419,7 +421,7 @@ void translate_Exp(Node root, Operand place) {
                 offset->u.const_val = width * t2->u.const_val;
             } else {
                 // offset :=  t2 * width
-                gen_ir(IR_MUL, offset, t2, gen_operand(OP_CONSTANT, width, -1, NULL), -1, NULL);
+                gen_ir(global_ir_list_head, IR_MUL, offset, t2, gen_operand(OP_CONSTANT, width, -1, NULL), -1, NULL);
             }
 
             // 将place设置为ADDRESS类型，名字为临时变量编号
@@ -430,12 +432,12 @@ void translate_Exp(Node root, Operand place) {
             if (t1->kind == OP_ARRAY) {  // Exp1-> ID
                 Operand base = new_temp();
                 // base := &addr
-                gen_ir(IR_ADDR, base, t1, NULL, -1, NULL);
+                gen_ir(global_ir_list_head, IR_ADDR, base, t1, NULL, -1, NULL);
                 // place := base + offset
-                gen_ir(IR_ADD, place, base, offset, -1, NULL);
+                gen_ir(global_ir_list_head, IR_ADD, place, base, offset, -1, NULL);
             } else if (t1->kind == OP_ADDRESS) {  // Exp1 -> Exp LB Exp RB
                 // place := t1 + offset
-                gen_ir(IR_ADD, place, t1, offset, -1, NULL);
+                gen_ir(global_ir_list_head, IR_ADD, place, t1, offset, -1, NULL);
             } else {
                 assert(0);
             }
@@ -468,7 +470,7 @@ void translate_Args(Node root, bool write_func) {
     }
     if (write_func) {  // WRITE arg
         arg = load_value(arg);
-        gen_ir(IR_WRITE, arg, NULL, NULL, -1, NULL);
+        gen_ir(global_ir_list_head, IR_WRITE, arg, NULL, NULL, -1, NULL);
     } else {
         if (arg->kind == OP_ARRAY) {
             arg = get_addr(arg, true);
@@ -480,7 +482,7 @@ void translate_Args(Node root, bool write_func) {
                 assert(0);
             }
         }
-        gen_ir(IR_ARG, arg, NULL, NULL, -1, NULL);
+        gen_ir(global_ir_list_head, IR_ARG, arg, NULL, NULL, -1, NULL);
     }
 }
 
@@ -494,12 +496,12 @@ void translate_Cond(Node root, Operand label_true, Operand label_false) {
     } else if (root->child_num == 3 && strcmp(get_child(root, 1)->name, "AND") == 0) {  // Exp AND Exp
         Operand label1 = new_label();
         translate_Cond(get_child(root, 0), label1, label_false);
-        gen_ir(IR_LABEL, label1, NULL, NULL, -1, NULL);
+        gen_ir(global_ir_list_head, IR_LABEL, label1, NULL, NULL, -1, NULL);
         translate_Cond(get_child(root, 2), label_true, label_false);
     } else if (root->child_num == 3 && strcmp(get_child(root, 1)->name, "OR") == 0) {  // Exp OR Exp
         Operand label1 = new_label();
         translate_Cond(get_child(root, 0), label_true, label1);
-        gen_ir(IR_LABEL, label1, NULL, NULL, -1, NULL);
+        gen_ir(global_ir_list_head, IR_LABEL, label1, NULL, NULL, -1, NULL);
         translate_Cond(get_child(root, 2), label_true, label_false);
     } else if (root->child_num == 3 && strcmp(get_child(root, 1)->name, "RELOP") == 0) {  // Exp RELOP Exp
         Operand t1 = new_temp();
@@ -510,17 +512,17 @@ void translate_Cond(Node root, Operand label_true, Operand label_false) {
         t2 = load_value(t2);
         char* relop = get_child(root, 1)->val;
         // IF t1 op t2 GOTO label_true
-        gen_ir(IR_IF_GOTO, t1, t2, label_true, -1, relop);
+        gen_ir(global_ir_list_head, IR_IF_GOTO, t1, t2, label_true, -1, relop);
         // GOTO label_false
-        gen_ir(IR_GOTO, label_false, NULL, NULL, -1, NULL);
+        gen_ir(global_ir_list_head, IR_GOTO, label_false, NULL, NULL, -1, NULL);
     } else {
         Operand t1 = new_temp();
         translate_Exp(root, t1);
         t1 = load_value(t1);
         // IF t1 != #0 GOTO label_true
-        gen_ir(IR_IF_GOTO, t1, gen_operand(OP_CONSTANT, 0, -1, NULL), label_true, -1, "!=");
+        gen_ir(global_ir_list_head, IR_IF_GOTO, t1, gen_operand(OP_CONSTANT, 0, -1, NULL), label_true, -1, "!=");
         // GOTO label_false
-        gen_ir(IR_GOTO, label_false, NULL, NULL, -1, NULL);
+        gen_ir(global_ir_list_head, IR_GOTO, label_false, NULL, NULL, -1, NULL);
     }
 }
 
@@ -537,14 +539,14 @@ Operand array_deep_copy(Operand op_left, Operand op_right) {
     for (int i = 0; i < size; i += 4) {
         Operand offset = gen_operand(OP_CONSTANT, i, -1, NULL);
         // left := base + offset
-        gen_ir(IR_ADD, left, left_base, offset, -1, NULL);
+        gen_ir(global_ir_list_head, IR_ADD, left, left_base, offset, -1, NULL);
         // right := base + offset
-        gen_ir(IR_ADD, right, right_base, offset, -1, NULL);
+        gen_ir(global_ir_list_head, IR_ADD, right, right_base, offset, -1, NULL);
         Operand val = new_temp();
         // val := *right
-        gen_ir(IR_LOAD, val, right, NULL, -1, NULL);
+        gen_ir(global_ir_list_head, IR_LOAD, val, right, NULL, -1, NULL);
         // *left := val
-        gen_ir(IR_STORE, left, val, NULL, -1, NULL);
+        gen_ir(global_ir_list_head, IR_STORE, left, val, NULL, -1, NULL);
     }
     return left_base;
 }
@@ -553,7 +555,7 @@ Operand load_value(Operand addr) {
     if (addr->kind != OP_ADDRESS) return addr;
     Operand place = new_temp();
     // place := *addr
-    gen_ir(IR_LOAD, place, addr, NULL, -1, NULL);
+    gen_ir(global_ir_list_head, IR_LOAD, place, addr, NULL, -1, NULL);
     return place;
 }
 
@@ -561,7 +563,7 @@ Operand get_addr(Operand addr, bool is_arg) {
     if (addr->kind != OP_ARRAY) return addr;
     Operand place = new_temp();
     // place := &addr
-    gen_ir(IR_ADDR, place, addr, NULL, -1, NULL);
+    gen_ir(global_ir_list_head, IR_ADDR, place, addr, NULL, -1, NULL);
     return place;
 }
 

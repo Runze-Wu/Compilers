@@ -6,9 +6,8 @@
 typedef struct Operand_* Operand;
 typedef struct InterCode_* InterCode;
 typedef struct InterCodeList_* InterCodeList;
-InterCodeList ir_list_head;  // 循环双向链表头
-unsigned int temp_number;    // 临时变量编号
-unsigned int label_number;   // 跳转编号
+unsigned int temp_number;   // 临时变量编号
+unsigned int label_number;  // 跳转编号
 struct Operand_ {
     enum {
         OP_VARIABLE,   // 变量
@@ -21,9 +20,9 @@ struct Operand_ {
         OP_CONSTANT,   // 常量
     } kind;
     union {
-        unsigned int const_val;  // 常量值
-        unsigned int number;     // 临时变量||跳转编号
-        char* name;              // 变量名||取地址的变量名||函数名||数组名||结构名
+        int const_val;        // 常量值
+        unsigned int number;  // 临时变量||跳转编号
+        char* name;           // 变量名||取地址的变量名||函数名||数组名||结构名
     } u;
     Type type;  // 数组元素类型
     int size;   // 数组元素个数
@@ -77,13 +76,14 @@ struct InterCodeList_ {  // 双向链表存储IR
     InterCodeList prev, next;
 };
 
-void init_ir_list();                       // 初始化IR双向链表头
-void add_ir(InterCode ir);                 // 将ir1添加到ir尾部,返回表头
-void show_ir_list(FILE* ir_out);           // 打印IR链表
-void show_ir(InterCode ir, FILE* ir_out);  // 打印IR
-void show_op(Operand op, FILE* ir_out);    // 打印OP
-void gen_ir(int ir_kind, Operand op1, Operand op2, Operand op3, int dec_size, char* relop);  // 生成IR
-Operand gen_operand(int operand_kind, int val, int no, char* name);                          // 产生Operand
-Operand new_temp();                                                                          // 产生一个临时变量
-Operand new_label();                                                                         // 产生一个跳转标记
+InterCodeList init_ir_list();                                 // 初始化IR双向链表头
+void add_ir(InterCodeList ir_list_head, InterCode ir);        // 将ir1添加到ir尾部,返回表头
+void show_ir_list(FILE* ir_out, InterCodeList ir_list_head);  // 打印IR链表
+void show_ir(InterCode ir, FILE* ir_out);                     // 打印IR
+void show_op(Operand op, FILE* ir_out);                       // 打印OP
+void gen_ir(InterCodeList ir_list_head, int ir_kind, Operand op1, Operand op2, Operand op3, int dec_size,
+            char* relop);                                            // 生成IR
+Operand gen_operand(int operand_kind, int val, int no, char* name);  // 产生Operand
+Operand new_temp();                                                  // 产生一个临时变量
+Operand new_label();                                                 // 产生一个跳转标记
 #endif
