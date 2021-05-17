@@ -72,7 +72,6 @@ Operand translate_VarDec(Node root) {
             assert(0);
         }
     } else if (root->child_num == 4) {  // VarDec -> VarDec LB INT RB
-        // 数组处理 TODO
         return translate_VarDec(get_child(root, 0));
     }
     return name_op;
@@ -214,7 +213,7 @@ void translate_Dec(Node root) {
     } else if (root->child_num == 3) {  // VarDec ASSIGNOP Exp
         Operand t1 = new_temp();
         translate_Exp(get_child(root, 2), t1);
-        if (name_op->kind == OP_ARRAY) {  // 给数组初始化 TODO
+        if (name_op->kind == OP_ARRAY) {  // 给数组初始化
             array_deep_copy(name_op, t1);
         } else if (name_op->kind == OP_VARIABLE) {  // 基础类型变量初始化
             t1 = load_value(t1);
@@ -294,7 +293,8 @@ void translate_Exp(Node root, Operand place) {
         } else if (strcmp(get_child(root, 0)->name, "ID") == 0) {  // Exp -> ID LP RP
             FieldList function = look_up(get_child(root, 0)->val);
             assert(function != NULL);
-            if (strcmp(function->name, "read") == 0) {  // READ place
+            if (strcmp(function->name, "read") == 0) {  
+                // READ place
                 gen_ir(global_ir_list_head, IR_READ, place, NULL, NULL, -1, NULL);
             } else {
                 // place := CALL function.name
@@ -308,8 +308,8 @@ void translate_Exp(Node root, Operand place) {
             translate_Exp(get_child(root, 0), op_left);
             Operand op_right = new_temp();
             translate_Exp(get_child(root, 2), op_right);
-            if (op_left->kind == OP_ADDRESS || op_left->kind == OP_ARRAY) {  // 左值为数组或者地址
-                // arr_a=arr_b||*addr_a=val_b||*addr_a=*addr_b;
+            if (op_left->kind == OP_ADDRESS || op_left->kind == OP_ARRAY) {
+                // 左值为数组或者地址 arr_a=arr_b||*addr_a=val_b||*addr_a=*addr_b;
                 if (op_right->kind == OP_ADDRESS || op_right->kind == OP_ARRAY) {  // 数组赋值
                     array_deep_copy(op_left, op_right);
                 } else {  // 单值写地址
@@ -318,11 +318,11 @@ void translate_Exp(Node root, Operand place) {
                     gen_ir(global_ir_list_head, IR_STORE, op_left, op_right, NULL, -1, NULL);
                 }
             } else {  // 左值为普通变量
-                // 读取地址中的值
                 op_right = load_value(op_right);
                 // op_left := op_right
                 gen_ir(global_ir_list_head, IR_ASSIGN, op_left, op_right, NULL, -1, NULL);
             }
+            //优化：不再生成place:=op_left，而是直接将左值赋给返回值
             // place := op_left
             place->kind = op_left->kind;
             place->u = op_left->u;
@@ -339,35 +339,25 @@ void translate_Exp(Node root, Operand place) {
             Operand t2 = new_temp();
             translate_Exp(get_child(root, 2), t2);
             t2 = load_value(t2);
-            int ir_kind = -1;
+            int ir_kind = -1,val;
             if (strcmp(get_child(root, 1)->name, "PLUS") == 0) {
                 ir_kind = IR_ADD;
+                val = t1->u.const_val + t2->u.const_val;
             } else if (strcmp(get_child(root, 1)->name, "MINUS") == 0) {
                 ir_kind = IR_SUB;
+                val = t1->u.const_val - t2->u.const_val;
             } else if (strcmp(get_child(root, 1)->name, "STAR") == 0) {
                 ir_kind = IR_MUL;
+                val = t1->u.const_val * t2->u.const_val;
             } else if (strcmp(get_child(root, 1)->name, "DIV") == 0) {
                 ir_kind = IR_DIV;
+                // 除零溢出
+                val = t2->u.const_val ? t1->u.const_val / t2->u.const_val : 0;
             } else {
                 assert(0);
             }
             if (t1->kind == OP_CONSTANT && t2->kind == OP_CONSTANT) {
-                int val;
-                switch (ir_kind) {
-                    case IR_ADD:
-                        val = t1->u.const_val + t2->u.const_val;
-                        break;
-                    case IR_SUB:
-                        val = t1->u.const_val - t2->u.const_val;
-                        break;
-                    case IR_MUL:
-                        val = t1->u.const_val * t2->u.const_val;
-                        break;
-                    case IR_DIV:
-                        // 除零溢出
-                        val = t2->u.const_val ? t1->u.const_val / t2->u.const_val : 0;
-                        break;
-                }
+                // 常量合并
                 place->kind = OP_CONSTANT;
                 place->u.const_val = val;
             } else {
@@ -391,7 +381,6 @@ void translate_Exp(Node root, Operand place) {
                 gen_ir(global_ir_list_head, IR_CALL, place, func_op, NULL, -1, NULL);
             }
         } else if (strcmp(get_child(root, 0)->name, "Exp") == 0) {  // Exp -> Exp LB Exp RB
-            // 数组处理 TODO
             Operand t1 = new_temp();
             translate_Exp(get_child(root, 0), t1);
             assert(t1->kind == OP_ARRAY || t1->kind == OP_ADDRESS);
