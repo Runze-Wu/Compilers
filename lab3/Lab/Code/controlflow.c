@@ -1,6 +1,7 @@
 #include "controlflow.h"
 
 unsigned int bb_number = 0;                // BB块编号
+BasicBlockList* bb_array;                  // BB链表数组，便于索引
 extern int optimizer_debug;                // optimizer debug mode
 extern InterCodeList* label_array;         // 所有编号的数组
 extern InterCodeList global_ir_list_head;  // 循环双向链表头
@@ -67,7 +68,11 @@ void construct_bb_list(BasicBlockList bb_list_head, InterCodeList ir_list_head) 
         cur = cur->next;
     }
     assert(prev_first != NULL);
-    construct_bb(bb_list_head, prev_first, ir_list_head->prev);
+    construct_bb(bb_list_head, prev_first, ir_list_head->prev);  // 最后一个BB块
+
+    construct_bb_array(bb_list_head);  // 构建CFG
+    construct_cfg(bb_array, label_array);
+    show_cfg(bb_array);
 }
 
 void bb_tag_ir_list(InterCodeList ir_list_head) {
@@ -104,10 +109,16 @@ bool is_bb_start(InterCode ir) {
 void construct_bb(BasicBlockList bb_list_head, InterCodeList first, InterCodeList last) {
     assert(first && last);
     BasicBlock bb = (BasicBlock)malloc(sizeof(struct BasicBlock_));
-    bb->pre = bb->suc = NULL;  // 前继后继设为NULL
+    bb->pre = init_bb_list();
+    bb->suc = init_bb_list();  // 前继后继设为空的头结点
     bb->first = first;
     bb->last = last;
     bb->bb_no = bb_number++;
+    InterCodeList cur = bb->first;
+    do {
+        cur->code->bb_no = bb_number - 1;  //记录所在的BB
+        cur = cur->next;
+    } while (cur != bb->last->next);
     if (optimizer_debug) {
         printf("new bb:%d\n", bb->bb_no);
         printf("first ir:\t");
@@ -118,18 +129,58 @@ void construct_bb(BasicBlockList bb_list_head, InterCodeList first, InterCodeLis
     add_bb(bb_list_head, bb);
 }
 
+void construct_bb_array(BasicBlockList bb_list_head) {
+    bb_array = (BasicBlockList*)malloc(sizeof(BasicBlockList) * bb_number);
+    BasicBlockList cur = bb_list_head->next;
+    int i = 0;
+    while (cur != bb_list_head) {
+        bb_array[i++] = cur;
+        cur = cur->next;
+    }
+}
+
+void construct_cfg(BasicBlockList* bbs, InterCodeList* labels) {
+    for (int i = 0; i < bb_number; i++) {
+        BasicBlockList cur = bbs[i];
+        assert(cur->bb->last->code != NULL);
+        unsigned int label_num = -1;
+        if (cur->bb->last->code->kind != IR_GOTO) {                      // 直接后继
+            if (i < bb_number - 1) add_bb(cur->bb->suc, cur->next->bb);  // 最后一块没有直接后继
+        }
+        if (cur->bb->last->code->kind == IR_GOTO) {  //跳转后继
+            assert(cur->bb->last->code->u.unary_ir.op != NULL);
+            label_num = cur->bb->last->code->u.unary_ir.op->u.number;
+        } else if (cur->bb->last->code->kind == IR_IF_GOTO) {
+            assert(cur->bb->last->code->u.if_goto.z != NULL);
+            label_num = cur->bb->last->code->u.if_goto.z->u.number;
+        }
+        if (label_num != -1) {
+            unsigned int goto_bb = labels[label_num]->code->bb_no;
+            add_bb(cur->bb->suc, bbs[goto_bb]->bb);
+        }
+    }
+}
+
+void show_cfg(BasicBlockList* bbs) {
+    for (int i = 0; i < bb_number; i++) {
+        BasicBlockList cur = bbs[i];
+        fprintf(stdout, "-------basic block%d,next:-------\n", cur->bb->bb_no);
+        show_bb_list(cur->bb->suc, stdout);
+    }
+}
+
 void show_bb_list(BasicBlockList bb_list_head, FILE* ir_out) {
     BasicBlockList cur = bb_list_head->next;
     while (cur != bb_list_head) {
         assert(cur->bb);
-        if (optimizer_debug) fprintf(ir_out, "-------basic block%d-------\n", cur->bb->bb_no);
+        if (optimizer_debug && ir_out) fprintf(ir_out, "-------basic block%d-------\n", cur->bb->bb_no);
         show_bb(cur->bb, ir_out);
         cur = cur->next;
     }
 }
 
 void show_bb(BasicBlock bb, FILE* ir_out) {
-    if (bb == NULL) return;
+    if (bb == NULL || ir_out == NULL) return;
     InterCodeList cur = bb->first;
     do {
         show_ir(cur->code, ir_out);
