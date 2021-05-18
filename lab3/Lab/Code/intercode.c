@@ -3,6 +3,8 @@
 unsigned int temp_number = 0;   // 临时变量编号
 unsigned int label_number = 0;  // 跳转编号
 extern int translator_debug;
+extern int optimizer_debug;
+extern InterCodeList* label_array;
 
 InterCodeList init_ir_list() {
     InterCodeList ir_list_head = (InterCodeList)malloc(sizeof(struct InterCodeList_));
@@ -24,16 +26,35 @@ void add_ir(InterCodeList ir_list_head, InterCode ir) {
     new_term->next = ir_list_head;
 }
 
+void delete_ir(InterCodeList ir) {
+    if (ir == NULL) return;
+    InterCodeList prev = ir->prev;
+    InterCodeList next = ir->next;
+    assert(prev != next && ir != next && ir != prev);
+    // 不应出现只有一条指令或者只有头部的情况
+    prev->next = next;
+    next->prev = prev;
+}
+
 void show_ir_list(InterCodeList ir_list_head, FILE* ir_out) {
+    label_array = (InterCodeList*)malloc(sizeof(InterCodeList) * label_number);
     InterCodeList cur = ir_list_head->next;
+    for (int i = 0; i < label_number; i++) label_array[i] = NULL;
     while (cur != ir_list_head) {
+        assert(cur->code != NULL);
         show_ir(cur->code, ir_out);
+        if (cur->code->kind == IR_LABEL) label_array[cur->code->u.unary_ir.op->u.number] = cur;
         cur = cur->next;
+    }
+    for (int i = 0; i < label_number; i++) {
+        if (label_array[i]) {
+            if (optimizer_debug) show_ir(label_array[i]->code, stdout);
+        }
     }
 }
 
 void show_ir(InterCode ir, FILE* ir_out) {
-    if (ir == NULL) return;
+    if (ir == NULL || ir_out == NULL) return;
     switch (ir->kind) {
         case IR_LABEL:
             fprintf(ir_out, "LABEL ");
