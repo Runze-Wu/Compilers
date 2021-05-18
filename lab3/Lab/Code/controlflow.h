@@ -19,12 +19,13 @@ struct BasicBlock_ {
     BasicBlockList pre, suc;    // 前继，后继BB
     InterCodeList first, last;  // BB的首指令和尾指令
 };
-void optimize();                                          // 代码优化接口
-BasicBlockList init_bb_list();                            //初始化BB双向链表头
-void add_bb(BasicBlockList bb_list_head, BasicBlock bb);  // 将bb加到list尾部
-void bb_tag_ir_list(InterCodeList ir_list_head);          // 给ir_list标记BB开始
-void bb_tag_ir(InterCode ir);                             // 给ir标记为基本块开始
-bool is_bb_start(InterCode ir);                           // 判断是否是BB开始
+void optimize();                                                                 // 代码优化接口
+void remove_redundant_label(InterCodeList ir_list_head, InterCodeList* labels);  // 删除冗余的label
+BasicBlockList init_bb_list();                                                   //初始化BB双向链表头
+void add_bb(BasicBlockList bb_list_head, BasicBlock bb);                         // 将bb加到list尾部
+void bb_tag_ir_list(InterCodeList ir_list_head);                                 // 给ir_list标记BB开始
+void bb_tag_ir(InterCode ir);                                                    // 给ir标记为基本块开始
+bool is_bb_start(InterCode ir);                                                  // 判断是否是BB开始
 void construct_bb_list(BasicBlockList bb_list_head, InterCodeList ir_list_head);
 void construct_bb(BasicBlockList bb_list_head, InterCodeList first, InterCodeList last);
 void show_bb_list(BasicBlockList bb_list_head, FILE* ir_out);

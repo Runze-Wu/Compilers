@@ -2,12 +2,34 @@
 
 unsigned int bb_number = 0;                // BB块编号
 extern int optimizer_debug;                // optimizer debug mode
+extern InterCodeList* label_array;         // 所有编号的数组
 extern InterCodeList global_ir_list_head;  // 循环双向链表头
 extern BasicBlockList global_bb_list;      // 基本块循环双向链表头
 
 void optimize() {
+    remove_redundant_label(global_ir_list_head, label_array);
     global_bb_list = init_bb_list();
     construct_bb_list(global_bb_list, global_ir_list_head);
+}
+
+void remove_redundant_label(InterCodeList ir_list_head, InterCodeList* labels) {
+    InterCodeList cur = ir_list_head->next;
+    while (cur != ir_list_head) {
+        assert(cur->code != NULL);
+        if (cur->code->kind == IR_LABEL) {
+            assert(cur->code->u.unary_ir.op != NULL);
+            unsigned int label_num = cur->code->u.unary_ir.op->u.number;
+            InterCodeList next = cur->next;
+            while (next != ir_list_head) {
+                assert(next->code != NULL);
+                if (next->code->kind != IR_LABEL) break;
+                delete_ir(next);
+                next->code->u.unary_ir.op->u.number = label_num;
+                next = next->next;
+            }
+        }
+        cur = cur->next;
+    }
 }
 
 BasicBlockList init_bb_list() {
