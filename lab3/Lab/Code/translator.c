@@ -4,7 +4,6 @@ extern int translator_debug;
 extern int translator_struct;
 extern unsigned int temp_number;           // 临时变量编号
 extern unsigned int label_number;          // 跳转编号
-extern FILE* ir_out;                       // the file pointer from which the translator writes its output.
 extern InterCodeList global_ir_list_head;  // 循环双向链表头
 
 void translate_Program(Node root) {
@@ -15,7 +14,6 @@ void translate_Program(Node root) {
     // Program -> ExtDefList
     assert(root->child_num == 1);
     translate_ExtDefList(get_child(root, 0));
-    show_ir_list(ir_out, global_ir_list_head);
 }
 
 void translate_ExtDefList(Node root) {
