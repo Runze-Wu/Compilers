@@ -7,6 +7,7 @@ extern int translator_debug;
 InterCodeList init_ir_list() {
     InterCodeList ir_list_head = (InterCodeList)malloc(sizeof(struct InterCodeList_));
     assert(ir_list_head != NULL);
+    ir_list_head->code = NULL;
     ir_list_head->prev = ir_list_head->next = ir_list_head;
     return ir_list_head;
 }
@@ -23,7 +24,7 @@ void add_ir(InterCodeList ir_list_head, InterCode ir) {
     new_term->next = ir_list_head;
 }
 
-void show_ir_list(FILE* ir_out, InterCodeList ir_list_head) {
+void show_ir_list(InterCodeList ir_list_head, FILE* ir_out) {
     InterCodeList cur = ir_list_head->next;
     while (cur != ir_list_head) {
         show_ir(cur->code, ir_out);
@@ -171,6 +172,7 @@ void gen_ir(InterCodeList ir_list_head, int ir_kind, Operand op1, Operand op2, O
     InterCode res_ir = (InterCode)malloc(sizeof(struct InterCode_));
     assert(res_ir != NULL);
     res_ir->kind = ir_kind;
+    res_ir->bb_start = false;
     switch (ir_kind) {
         case IR_LABEL:
         case IR_FUNC:

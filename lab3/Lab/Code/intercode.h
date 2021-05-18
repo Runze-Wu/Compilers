@@ -69,6 +69,7 @@ struct InterCode_ {
             char relop[64];
         } if_goto;  // IR_IF_GOTO
     } u;
+    bool bb_start;  // 基本块的开始
 };
 
 struct InterCodeList_ {  // 双向链表存储IR
@@ -77,8 +78,8 @@ struct InterCodeList_ {  // 双向链表存储IR
 };
 
 InterCodeList init_ir_list();                                 // 初始化IR双向链表头
-void add_ir(InterCodeList ir_list_head, InterCode ir);        // 将ir1添加到ir尾部,返回表头
-void show_ir_list(FILE* ir_out, InterCodeList ir_list_head);  // 打印IR链表
+void add_ir(InterCodeList ir_list_head, InterCode ir);        // 将ir添加到ir_list_head尾部
+void show_ir_list(InterCodeList ir_list_head, FILE* ir_out);  // 打印IR链表
 void show_ir(InterCode ir, FILE* ir_out);                     // 打印IR
 void show_op(Operand op, FILE* ir_out);                       // 打印OP
 void gen_ir(InterCodeList ir_list_head, int ir_kind, Operand op1, Operand op2, Operand op3, int dec_size,
