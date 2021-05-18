@@ -168,9 +168,10 @@ void construct_cfg(BasicBlockList* bbs, InterCodeList* labels) {
 void show_cfg(BasicBlockList* bbs) {
     for (int i = 0; i < bb_number; i++) {
         BasicBlockList cur = bbs[i];
-        fprintf(stdout, "-------basic block%d,next:-------\n", cur->bb->bb_no);
+        if (!optimizer_debug) break;
+        printf("-------basic block%d,next:-------\n", cur->bb->bb_no);
         show_bb_list(cur->bb->suc, stdout);
-        fprintf(stdout, "-------basic block%d,prev:-------\n", cur->bb->bb_no);
+        printf("-------basic block%d,prev:-------\n", cur->bb->bb_no);
         show_bb_list(cur->bb->pre, stdout);
     }
 }
