@@ -293,7 +293,7 @@ void translate_Exp(Node root, Operand place) {
         } else if (strcmp(get_child(root, 0)->name, "ID") == 0) {  // Exp -> ID LP RP
             FieldList function = look_up(get_child(root, 0)->val);
             assert(function != NULL);
-            if (strcmp(function->name, "read") == 0) {  
+            if (strcmp(function->name, "read") == 0) {
                 // READ place
                 gen_ir(global_ir_list_head, IR_READ, place, NULL, NULL, -1, NULL);
             } else {
@@ -339,7 +339,7 @@ void translate_Exp(Node root, Operand place) {
             Operand t2 = new_temp();
             translate_Exp(get_child(root, 2), t2);
             t2 = load_value(t2);
-            int ir_kind = -1,val;
+            int ir_kind = -1, val;
             if (strcmp(get_child(root, 1)->name, "PLUS") == 0) {
                 ir_kind = IR_ADD;
                 val = t1->u.const_val + t2->u.const_val;
@@ -518,7 +518,7 @@ Operand array_deep_copy(Operand op_left, Operand op_right) {
     gen_ir(global_ir_list_head, IR_LOAD, val, right_base, NULL, -1, NULL);
     // *left := val
     gen_ir(global_ir_list_head, IR_STORE, left_base, val, NULL, -1, NULL);
-    for (int i = 1; i < size; i += 4) {
+    for (int i = 4; i < size; i += 4) {
         Operand offset = gen_operand(OP_CONSTANT, i, -1, NULL);
         // left := base + offset
         gen_ir(global_ir_list_head, IR_ADD, left, left_base, offset, -1, NULL);
