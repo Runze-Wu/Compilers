@@ -144,8 +144,11 @@ void construct_cfg(BasicBlockList* bbs, InterCodeList* labels) {
         BasicBlockList cur = bbs[i];
         assert(cur->bb->last->code != NULL);
         unsigned int label_num = -1;
-        if (cur->bb->last->code->kind != IR_GOTO) {                      // 直接后继
-            if (i < bb_number - 1) add_bb(cur->bb->suc, cur->next->bb);  // 最后一块没有直接后继
+        if (cur->bb->last->code->kind != IR_GOTO) {  // 直接后继
+            if (i < bb_number - 1) {
+                add_bb(cur->bb->suc, cur->next->bb);  // 最后一块没有直接后继
+                add_bb(cur->next->bb->pre, cur->bb);  // 设置前驱
+            }
         }
         if (cur->bb->last->code->kind == IR_GOTO) {  //跳转后继
             assert(cur->bb->last->code->u.unary_ir.op != NULL);
@@ -157,6 +160,7 @@ void construct_cfg(BasicBlockList* bbs, InterCodeList* labels) {
         if (label_num != -1) {
             unsigned int goto_bb = labels[label_num]->code->bb_no;
             add_bb(cur->bb->suc, bbs[goto_bb]->bb);
+            add_bb(bbs[goto_bb]->bb->pre, cur->bb);
         }
     }
 }
@@ -166,6 +170,8 @@ void show_cfg(BasicBlockList* bbs) {
         BasicBlockList cur = bbs[i];
         fprintf(stdout, "-------basic block%d,next:-------\n", cur->bb->bb_no);
         show_bb_list(cur->bb->suc, stdout);
+        fprintf(stdout, "-------basic block%d,prev:-------\n", cur->bb->bb_no);
+        show_bb_list(cur->bb->pre, stdout);
     }
 }
 

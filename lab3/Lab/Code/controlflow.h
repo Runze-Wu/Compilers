@@ -17,7 +17,7 @@ struct BasicBlockList_ {  // 基本块链表
 };
 struct BasicBlock_ {
     unsigned int bb_no;         // BB块编号
-    BasicBlockList pre, suc;    // 前继，后继BB链表
+    BasicBlockList pre, suc;    // 前驱，后继BB链表
     InterCodeList first, last;  // BB的首指令和尾指令
 };
 void optimize();                                                                  // 代码优化接口
