@@ -322,8 +322,8 @@ void translate_Exp(Node root, Operand place) {
             }
             //优化：不再生成place:=op_left，而是直接将左值赋给返回值
             // place := op_left
-            place->kind = op_left->kind;
-            place->u = op_left->u;
+            place->kind = op_right->kind;
+            place->u = op_right->u;
         } else {
             /**
              * Exp -> Exp PLUS Exp
