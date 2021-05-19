@@ -1,0 +1,130 @@
+\documentclass[11pt]{article}
+\usepackage{bm}
+\usepackage{ctex}
+\usepackage{array}
+\usepackage{color}
+\usepackage{float}
+\usepackage{xcolor}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{tabularx}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\usepackage{enumitem}
+\usepackage{enumerate}
+\definecolor{keywordcolor}{rgb}{0.8,0.1,0.5}
+
+\pagestyle{fancy}
+\hypersetup{hypertex = true,
+			colorlinks = false,
+			linkcolor = blue ,
+			anchorcolor = blue,
+			citecolor = blue}
+\fancyhf{}
+
+
+\definecolor{mygreen}{rgb}{0,0.6,0}  
+\definecolor{mygray}{rgb}{0.5,0.5,0.5}  
+\definecolor{mymauve}{rgb}{0.58,0,0.82}  
+
+\lstset{ %  
+	backgroundcolor=\color{white},   % choose the background color; you must add \usepackage{color} or \usepackage{xcolor}  
+	basicstyle=\footnotesize,        % the size of the fonts that are used for the code  
+	breakatwhitespace=false,         % sets if automatic breaks should only happen at whitespace  
+	breaklines=true,                 % sets automatic line breaking  
+	captionpos=bl,                    % sets the caption-position to bottom  
+	commentstyle=\color{mygreen},    % comment style  
+	deletekeywords={...},            % if you want to delete keywords from the given language  
+	escapeinside={\%*}{*)},          % if you want to add LaTeX within your code  
+	extendedchars=true,              % lets you use non-ASCII characters; for 8-bits encodings only, does not work with UTF-8  
+	frame=single,                    % adds a frame around the code  
+	keepspaces=true,                 % keeps spaces in text, useful for keeping indentation of code (possibly needs columns=flexible)  
+	keywordstyle=\color{blue},       % keyword style  
+	%language=Python,                 % the language of the code  
+	morekeywords={*,...},            % if you want to add more keywords to the set  
+	numbers=left,                    % where to put the line-numbers; possible values are (none, left, right)  
+	numbersep=5pt,                   % how far the line-numbers are from the code  
+	numberstyle=\tiny\color{mygray}, % the style that is used for the line-numbers  
+	rulecolor=\color{black},         % if not set, the frame-color may be changed on line-breaks within not-black text (e.g. comments (green here))  
+	showspaces=false,                % show spaces everywhere adding particular underscores; it overrides 'showstringspaces'  
+	showstringspaces=false,          % underline spaces within strings only  
+	showtabs=false,                  % show tabs within strings adding particular underscores  
+	stepnumber=1,                    % the step between two line-numbers. If it's 1, each line will be numbered  
+	stringstyle=\color{orange},     % string literal style  
+	tabsize=2,                       % sets default tabsize to 2 spaces  
+	%title=myPython.py                   % show the filename of files included with \lstinputlisting; also try caption instead of title  
+}
+
+\chead{Compiler}
+\fancyhead[r]{\bfseries\thepage}
+\fancyhead[l]{\bfseries\rightmark}
+\setlength{\listparindent}{0em} %段落缩进量
+\begin{titlepage}
+	\title{05-19编译原理作业12	}
+	\author{
+			\textbf{作者:} {吴润泽}
+			\and {\textbf{学号:} 181860109}
+		}
+\end{titlepage}
+\begin{document}
+\maketitle
+\section*{8.2.2}
+\noindent\textbf{1)}
+\begin{lstlisting}
+LD		R1,	i
+MUL		R1,	R1, #4
+LD		R2,	a(R1)
+ST		x,	R2
+LD		R3,	j
+MUL		R3,	R3, #4
+LD		R4,	b(R3)
+ST		y,	R4
+ST		a(R1), R4
+ST		b(R3), R2
+\end{lstlisting}
+\textbf{2)}
+\begin{lstlisting}
+LD		R1, i
+MUL		R1, R1, #4
+LD		R2, a(R1)
+ST		x,	R2
+LD		R3, b(R1)
+ST		y,	R1
+MUL		R1,	R2,	R1
+ST		z,	R1
+\end{lstlisting}
+\section*{8.2.4}
+\begin{lstlisting}
+		LD		R1,	x
+		LD		R2,	y
+		SUB		R1,	R1,	R2
+		BLTZ	R1,	L1
+		LD		R1,	#0
+		ST		z,	R1
+		BR		L2
+L1:	LD		R1,	#1
+		ST		z,	R1	
+\end{lstlisting}
+\section*{8.5.1}
+\noindent\textbf{1)}
+\begin{figure}[H]
+	\centering
+	\label{fig:8.5.1-1}
+	\includegraphics[scale=0.5]{8.5.1-1.png}
+\end{figure}
+\noindent\textbf{2)}
+\begin{figure}[H]
+	\centering
+	\label{fig:8.5.1-2}
+	\includegraphics[scale=0.45]{8.5.1-2.png}
+\end{figure}
+\section*{8.6.1}
+\begin{lstlisting}
+t1	=	a
+t2	=	b	*	c
+t3	=	t1	+	t2
+x	=	t3
+\end{lstlisting}
+\end{document}
