@@ -10,7 +10,7 @@ extern BasicBlockList global_bb_list;      // 基本块循环双向链表头
 void optimize() {
     remove_redundant_label(global_ir_list_head, label_array);
     global_bb_list = init_bb_list();
-    construct_bb_list(global_bb_list, global_ir_list_head);
+    construct_bb_list(global_bb_list, global_ir_list_head, label_array);
 }
 
 void remove_redundant_label(InterCodeList ir_list_head, InterCodeList* labels) {
@@ -52,9 +52,9 @@ void add_bb(BasicBlockList bb_list_head, BasicBlock bb) {
     new_term->next = bb_list_head;
 }
 
-void construct_bb_list(BasicBlockList bb_list_head, InterCodeList ir_list_head) {
+void construct_bb_list(BasicBlockList bb_list_head, InterCodeList ir_list_head, InterCodeList* labels) {
     InterCodeList prev_first = NULL;
-    bb_tag_ir_list(ir_list_head);  // 进行BB的标记
+    bb_tag_ir_list(ir_list_head, labels);  // 进行BB的标记
     InterCodeList cur = ir_list_head->next;
     while (cur != ir_list_head) {
         assert(cur->code != NULL);
@@ -75,19 +75,27 @@ void construct_bb_list(BasicBlockList bb_list_head, InterCodeList ir_list_head) 
     show_cfg(bb_array);
 }
 
-void bb_tag_ir_list(InterCodeList ir_list_head) {
+void bb_tag_ir_list(InterCodeList ir_list_head, InterCodeList* labels) {
     InterCodeList cur = ir_list_head->next;
     bb_tag_ir(cur->code);  // step1: 第一条指令标记为BB开始
     while (cur != ir_list_head) {
         assert(cur->code != NULL);
         if (cur->code->kind == IR_IF_GOTO || cur->code->kind == IR_GOTO) {
+            unsigned int label_num = -1;
+            if (cur->code->kind == IR_GOTO) {  //跳转目标
+                assert(cur->code->u.unary_ir.op != NULL);
+                label_num = cur->code->u.unary_ir.op->u.number;
+            } else {
+                assert(cur->code->u.if_goto.z != NULL);
+                label_num = cur->code->u.if_goto.z->u.number;
+            }
+            assert(label_num != -1 && label_num < label_number);
+            // step2: 跳转语句的目标指令为BB开始
+            bb_tag_ir(labels[label_num]->code);
             // step3: 跳转语句的下一条指令为BB开始
             if (cur != ir_list_head) {
                 bb_tag_ir(cur->next->code);
             }
-        } else if (cur->code->kind == IR_LABEL) {
-            // step2: 跳转语句的目标指令为BB开始
-            bb_tag_ir(cur->code);
         } else if (cur->code->kind == IR_FUNC) {
             // step4: 函数定义指令为BB开始
             bb_tag_ir(cur->code);
@@ -168,10 +176,9 @@ void construct_cfg(BasicBlockList* bbs, InterCodeList* labels) {
 void show_cfg(BasicBlockList* bbs) {
     for (int i = 0; i < bb_number; i++) {
         BasicBlockList cur = bbs[i];
-        if (!optimizer_debug) break;
-        printf("-------basic block%d,next:-------\n", cur->bb->bb_no);
+        if (optimizer_debug) printf("-------basic block%d,next:-------\n", cur->bb->bb_no);
         show_bb_list(cur->bb->suc, stdout);
-        printf("-------basic block%d,prev:-------\n", cur->bb->bb_no);
+        if (optimizer_debug) printf("-------basic block%d,prev:-------\n", cur->bb->bb_no);
         show_bb_list(cur->bb->pre, stdout);
     }
 }
@@ -190,7 +197,7 @@ void show_bb(BasicBlock bb, FILE* ir_out) {
     if (bb == NULL || ir_out == NULL) return;
     InterCodeList cur = bb->first;
     do {
-        show_ir(cur->code, ir_out);
+        if (optimizer_debug || ir_out != stdout) show_ir(cur->code, ir_out);
         cur = cur->next;
     } while (cur != bb->last->next);
 }
