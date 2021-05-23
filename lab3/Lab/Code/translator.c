@@ -320,8 +320,8 @@ void translate_Exp(Node root, Operand place) {
                 // op_left := op_right
                 gen_ir(global_ir_list_head, IR_ASSIGN, op_left, op_right, NULL, -1, NULL);
             }
-            //优化：不再生成place:=op_left，而是直接将左值赋给返回值
-            // place := op_left
+            //优化：不再生成place:=op_right，而是直接将右值赋给返回值
+            // place := op_right
             place->kind = op_right->kind;
             place->u = op_right->u;
         } else {
