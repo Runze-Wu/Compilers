@@ -42,7 +42,5 @@ Operand get_addr(Operand addr, bool is_arg);  // 获取数组的地址，以及�
 
 int get_size(Type type);  // 获取数组或者结构体的大小
 
-void dump_structure_err();
-
 void dump_translator_node(Node node, char* translator_name);  // debug func
 #endif

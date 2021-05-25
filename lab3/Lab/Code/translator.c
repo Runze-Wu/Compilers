@@ -1,7 +1,6 @@
 #include "translator.h"
 
 extern int translator_debug;
-extern int translator_struct;
 extern int temp_number;                    // 临时变量编号
 extern int label_number;                   // 跳转编号
 extern InterCodeList global_ir_list_head;  // 循环双向链表头
@@ -62,10 +61,6 @@ Operand translate_VarDec(Node root) {
             name_op = gen_operand(OP_VARIABLE, -1, -1, var_name);
         } else if (res->type->kind == STRUCTURE) {  // 不应出现结构体变量
             dump_structure_err();
-            name_op = gen_operand(OP_STRUCTURE, -1, -1, var_name);
-            int dec_size = get_size(res->type);
-            // DEC variable.name size
-            gen_ir(global_ir_list_head, IR_DEC, name_op, NULL, NULL, dec_size, NULL);
         } else {  // 不应出现函数或者结构体定义类型
             assert(0);
         }
@@ -90,7 +85,20 @@ void translate_FunDec(Node root) {
         FieldList arg_field = func_field->type->u.function.argv;
         while (arg_field) {
             // PARAM arg.name
-            Operand arg_op = gen_operand(OP_VARIABLE, -1, -1, arg_field->name);
+            Operand arg_op;
+            switch (arg_field->type->kind) {
+                case BASIC:  // 参数是普通变量
+                    arg_op = gen_operand(OP_VARIABLE, -1, -1, arg_field->name);
+                    break;
+                case ARRAY:
+                    arg_op = gen_operand(OP_ARRAY, -1, -1, arg_field->name);
+                    break;
+                case STRUCTURE:  // 假设不存在结构变量
+                    dump_structure_err();
+                    break;
+                default:
+                    break;
+            }
             gen_ir(global_ir_list_head, IR_PARAM, arg_op, NULL, NULL, -1, NULL);
             arg_field = arg_field->tail;
         }
@@ -251,20 +259,27 @@ void translate_Exp(Node root, Operand place) {
         if (strcmp(get_child(root, 0)->name, "ID") == 0) {  // Exp -> ID
             FieldList result = look_up(get_child(root, 0)->val);
             assert(result != NULL);
-            place->u.name = result->name;
             if (result->type->kind == BASIC) {
                 // place := variable.name
                 place->kind = OP_VARIABLE;
+                place->u.var_no = result->id;
             } else if (result->type->kind == ARRAY) {
                 // ID type : ARRAY TODO
-                place->kind = OP_ARRAY;
+                Operand array = gen_operand(OP_ARRAY, -1, -1, result->name);
                 // 是否是函数的形式参数，此时ID代表的是其数组地址
-                if (result->arg == true) place->kind = OP_ADDRESS;
+                if (result->arg == true) {
+                    place->kind = OP_ADDRESS;
+                    place->u.addr_no = addr_number++;
+                    // place := array
+                    gen_ir(global_ir_list_head, IR_ASSIGN, place, array, NULL, -1, NULL);
+                } else {
+                    place->kind = OP_ARRAY;
+                    place->u.array_no = result->id;
+                }
                 place->type = result->type->u.array.elem;
                 place->size = result->type->u.array.size;
             } else if (result->type->kind == STRUCTURE) {  // 假设2 不存在结构体变量
                 dump_structure_err();
-                place->kind = OP_STRUCTURE;
             }
         } else if (strcmp(get_child(root, 0)->name, "INT") == 0) {  // Exp -> INT
             // place := #value
@@ -397,8 +412,7 @@ void translate_Exp(Node root, Operand place) {
 
             // 将place设置为ADDRESS类型，名字为临时变量编号
             place->kind = OP_ADDRESS;
-            place->u.name = (char*)malloc(32);
-            sprintf(place->u.name, "addr%d", addr_number++);
+            place->u.addr_no = addr_number++;
 
             if (t1->kind == OP_ARRAY) {  // Exp1-> ID
                 if (offset->kind == OP_CONSTANT && offset->u.const_val == 0) {
@@ -566,12 +580,6 @@ int get_size(Type type) {
         assert(0);
     }
     return 0;
-}
-
-void dump_structure_err() {
-    if (translator_struct) return;
-    printf("Cannot translate: Code contains variables or parameters of structure type.");
-    exit(-1);
 }
 
 void dump_translator_node(Node node, char* translator_name) {
