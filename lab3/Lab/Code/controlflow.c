@@ -28,13 +28,13 @@ void remove_redundant_label() {
         assert(cur->code != NULL);
         if (cur->code->kind == IR_LABEL) {
             assert(cur->code->u.unary_ir.op != NULL);
-            int label_num = cur->code->u.unary_ir.op->u.number;
+            int label_num = cur->code->u.unary_ir.op->u.label_no;
             InterCodeList next = cur->next;
             while (next != global_ir_list_head) {
                 assert(next->code != NULL);
                 if (next->code->kind != IR_LABEL) break;
                 delete_ir(next);
-                next->code->u.unary_ir.op->u.number = label_num;
+                next->code->u.unary_ir.op->u.label_no = label_num;
                 next = next->next;
             }
         }
@@ -81,10 +81,10 @@ void bb_tag_ir_list() {
             int label_num = UNKNOWN;
             if (cur->code->kind == IR_GOTO) {  //跳转目标
                 assert(cur->code->u.unary_ir.op != NULL);
-                label_num = cur->code->u.unary_ir.op->u.number;
+                label_num = cur->code->u.unary_ir.op->u.label_no;
             } else {
                 assert(cur->code->u.if_goto.z != NULL);
-                label_num = cur->code->u.if_goto.z->u.number;
+                label_num = cur->code->u.if_goto.z->u.label_no;
             }
             assert(label_num != UNKNOWN && label_num < label_number);
             // step2: 跳转语句的目标指令为BB开始
@@ -168,7 +168,7 @@ void construct_fb_array() {
                 construct_fb(fb_array[fb_number++], prev_func, prev_fb, cur_fb - 1);
             }
             prev_fb = i;
-            prev_func = cur->bb->first->code->u.unary_ir.op->u.name;
+            prev_func = cur->bb->first->code->u.unary_ir.op->u.func_name;
         }
         cur->bb->fb_no = fb_number;
     }
@@ -252,10 +252,10 @@ void construct_cfg() {
         }
         if (cur->bb->last->code->kind == IR_GOTO) {  //跳转后继
             assert(cur->bb->last->code->u.unary_ir.op != NULL);
-            label_num = cur->bb->last->code->u.unary_ir.op->u.number;
+            label_num = cur->bb->last->code->u.unary_ir.op->u.label_no;
         } else if (cur->bb->last->code->kind == IR_IF_GOTO) {
             assert(cur->bb->last->code->u.if_goto.z != NULL);
-            label_num = cur->bb->last->code->u.if_goto.z->u.number;
+            label_num = cur->bb->last->code->u.if_goto.z->u.label_no;
         }
         if (label_num != UNKNOWN) {
             int goto_bb = label_array[label_num]->code->bb_no;
@@ -359,9 +359,9 @@ int get_variable_count() { return var_number + temp_number; }
 int get_variable_id(Operand op) {
     int id = -1;
     if (op->kind == OP_TEMP) {
-        id = op->u.number;
+        id = op->u.temp_no;
     } else if (op->kind == OP_VARIABLE) {
-        id = temp_number + look_up(op->u.name)->var_id;
+        id = temp_number + op->u.var_no;
     }
     return id;
 }
