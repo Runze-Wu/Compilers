@@ -44,7 +44,7 @@ void show_ir_list(InterCodeList ir_list_head, FILE* ir_out) {
     while (cur != ir_list_head) {
         assert(cur->code != NULL);
         show_ir(cur->code, ir_out);
-        if (cur->code->kind == IR_LABEL) label_array[cur->code->u.unary_ir.op->u.number] = cur;
+        if (cur->code->kind == IR_LABEL) label_array[cur->code->u.unary_ir.op->u.label_no] = cur;
         cur = cur->next;
     }
     for (int i = 0; i < label_number; i++) {
@@ -169,17 +169,25 @@ void show_op(Operand op, FILE* ir_out) {
     if (op == NULL) return;
     switch (op->kind) {
         case OP_VARIABLE:
+            fprintf(ir_out, "var%d ", op->u.var_no);
+            break;
         case OP_ADDRESS:
+            fprintf(ir_out, "addr%d ", op->u.addr_no);
+            break;
         case OP_FUNCTION:
+            fprintf(ir_out, "%s ", op->u.func_name);
+            break;
         case OP_ARRAY:
+            fprintf(ir_out, "array%d ", op->u.array_no);
+            break;
         case OP_STRUCTURE:
-            fprintf(ir_out, "%s ", op->u.name);
+            dump_structure_err();
             break;
         case OP_LABEL:
-            fprintf(ir_out, "label%d ", op->u.number);
+            fprintf(ir_out, "label%d ", op->u.label_no);
             break;
         case OP_TEMP:
-            fprintf(ir_out, "t%d ", op->u.number);
+            fprintf(ir_out, "t%d ", op->u.temp_no);
             break;
         case OP_CONSTANT:
             fprintf(ir_out, "#%d ", op->u.const_val);
@@ -269,17 +277,34 @@ Operand gen_operand(int operand_kind, int val, int number, char* name) {
     Operand res_op = (Operand)malloc(sizeof(struct Operand_));
     assert(res_op != NULL);
     res_op->kind = operand_kind;
+    FieldList result;
     switch (operand_kind) {
-        case OP_VARIABLE:
         case OP_ADDRESS:
+            res_op->u.addr_no = number;
+            break;
         case OP_FUNCTION:
+            result = look_up(name);
+            assert(result != NULL && result->type->kind == FUNCTION);
+            res_op->u.func_name = name;
+            break;
         case OP_ARRAY:
+            result = look_up(name);
+            assert(result != NULL && result->type->kind == ARRAY);
+            res_op->u.array_no = result->id;
+            break;
         case OP_STRUCTURE:
-            res_op->u.name = name;
+            dump_structure_err();
+            break;
+        case OP_VARIABLE:
+            result = look_up(name);
+            assert(result != NULL && result->type->kind == BASIC);
+            res_op->u.var_no = result->id;
             break;
         case OP_LABEL:
+            res_op->u.label_no = number;
+            break;
         case OP_TEMP:
-            res_op->u.number = number;
+            res_op->u.temp_no = number;
             break;
         case OP_CONSTANT:
             res_op->u.const_val = val;
@@ -293,10 +318,6 @@ Operand gen_operand(int operand_kind, int val, int number, char* name) {
 
 Operand new_temp() { return gen_operand(OP_TEMP, -1, temp_number++, NULL); }
 
-Operand new_addr() {
-    char* addr_name = (char*)malloc(32);
-    sprintf(addr_name, "addr%d", addr_number++);
-    return gen_operand(OP_ADDRESS, -1, -1, addr_name);
-}
+Operand new_addr() { return gen_operand(OP_ADDRESS, -1, addr_number++, NULL); }
 
 Operand new_label() { return gen_operand(OP_LABEL, -1, label_number++, NULL); }

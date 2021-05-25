@@ -21,9 +21,13 @@ struct Operand_ {
         OP_CONSTANT,   // 常量
     } kind;
     union {
-        int const_val;  // 常量值
-        int number;     // 临时变量||跳转编号
-        char* name;     // 变量名||取地址的变量名||函数名||数组名||结构名
+        int var_no;       // 变量编号
+        int addr_no;      // 地址编号
+        char* func_name;  // 函数名字
+        int array_no;     // 数组编号
+        int label_no;     // 跳转编号
+        int temp_no;      // 临时变量编号
+        int const_val;    // 常量值
     } u;
     Type type;  // 数组元素类型
     int size;   // 数组元素个数
