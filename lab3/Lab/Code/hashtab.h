@@ -39,7 +39,7 @@ struct FieldList_ {
     Type type;       // 域的类型
     FieldList tail;  // 下一个域
     bool arg;        // 函数形参
-    int var_id;      // 变量id
+    int id;          // 变量id
 };
 
 struct HashNode_ {
@@ -50,4 +50,5 @@ void init_hashtable();               // initialize the hashtable
 unsigned int hash(char* name);       // hash function
 void insert_field(FieldList field);  // insert filed to hashtable
 FieldList look_up(char* name);       // look up the item, if find return the index
+void dump_structure_err();
 #endif
