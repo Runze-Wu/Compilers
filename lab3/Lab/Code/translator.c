@@ -2,8 +2,8 @@
 
 extern int translator_debug;
 extern int translator_struct;
-extern unsigned int temp_number;           // 临时变量编号
-extern unsigned int label_number;          // 跳转编号
+extern int temp_number;                    // 临时变量编号
+extern int label_number;                   // 跳转编号
 extern InterCodeList global_ir_list_head;  // 循环双向链表头
 
 void translate_Program(Node root) {
@@ -398,7 +398,7 @@ void translate_Exp(Node root, Operand place) {
             // 将place设置为ADDRESS类型，名字为临时变量编号
             place->kind = OP_ADDRESS;
             place->u.name = (char*)malloc(32);
-            sprintf(place->u.name, "t%d", temp_number++);
+            sprintf(place->u.name, "addr%d", addr_number++);
 
             if (t1->kind == OP_ARRAY) {  // Exp1-> ID
                 if (offset->kind == OP_CONSTANT && offset->u.const_val == 0) {
@@ -509,8 +509,8 @@ Operand array_deep_copy(Operand op_left, Operand op_right) {
     int size_right = get_size(op_right->type) * op_right->size;
     int size = size_left < size_right ? size_left : size_right;
     assert(size % 4 == 0);
-    Operand left = new_temp();
-    Operand right = new_temp();
+    Operand left = new_addr();
+    Operand right = new_addr();
     Operand val = new_temp();
     // val := *right
     gen_ir(global_ir_list_head, IR_LOAD, val, right_base, NULL, -1, NULL);
@@ -540,7 +540,7 @@ Operand load_value(Operand addr) {
 
 Operand get_addr(Operand addr, bool is_arg) {
     if (addr->kind != OP_ARRAY) return addr;
-    Operand place = new_temp();
+    Operand place = new_addr();
     // place := &addr
     gen_ir(global_ir_list_head, IR_ADDR, place, addr, NULL, -1, NULL);
     return place;
