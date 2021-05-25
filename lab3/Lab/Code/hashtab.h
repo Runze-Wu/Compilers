@@ -12,6 +12,7 @@ typedef struct Type_* Type;
 typedef struct FieldList_* FieldList;
 typedef struct HashNode_* HashNode;
 HashNode hashtable[HASHTABLE_SIZE + 1];
+int var_number;  // 变量编号，便于优化处理
 
 struct Type_ {
     enum { BASIC, ARRAY, STRUCTURE, STRUCTTAG, FUNCTION } kind;
@@ -38,6 +39,7 @@ struct FieldList_ {
     Type type;       // 域的类型
     FieldList tail;  // 下一个域
     bool arg;        // 函数形参
+    int var_id;      // 变量id
 };
 
 struct HashNode_ {
