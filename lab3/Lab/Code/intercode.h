@@ -6,8 +6,9 @@
 typedef struct Operand_* Operand;
 typedef struct InterCode_* InterCode;
 typedef struct InterCodeList_* InterCodeList;
-unsigned int temp_number;   // 临时变量编号
-unsigned int label_number;  // 跳转编号
+int temp_number;   // 临时变量编号
+int label_number;  // 跳转编号
+int addr_number;   // 地址编号
 struct Operand_ {
     enum {
         OP_VARIABLE,   // 变量
@@ -20,9 +21,9 @@ struct Operand_ {
         OP_CONSTANT,   // 常量
     } kind;
     union {
-        int const_val;        // 常量值
-        unsigned int number;  // 临时变量||跳转编号
-        char* name;           // 变量名||取地址的变量名||函数名||数组名||结构名
+        int const_val;  // 常量值
+        int number;     // 临时变量||跳转编号
+        char* name;     // 变量名||取地址的变量名||函数名||数组名||结构名
     } u;
     Type type;  // 数组元素类型
     int size;   // 数组元素个数
@@ -88,5 +89,6 @@ void gen_ir(InterCodeList ir_list_head, int ir_kind, Operand op1, Operand op2, O
             char* relop);                                            // 生成IR
 Operand gen_operand(int operand_kind, int val, int no, char* name);  // 产生Operand
 Operand new_temp();                                                  // 产生一个临时变量
+Operand new_addr();                                                  // 产生一个地址
 Operand new_label();                                                 // 产生一个跳转标记
 #endif

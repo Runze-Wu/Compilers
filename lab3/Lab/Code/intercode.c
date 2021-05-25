@@ -1,7 +1,8 @@
 #include "intercode.h"
 
-unsigned int temp_number = 0;   // 临时变量编号
-unsigned int label_number = 0;  // 跳转编号
+int temp_number = 0;   // 临时变量编号
+int label_number = 0;  // 跳转编号
+int addr_number = 0;   // 地址编号
 extern int translator_debug;
 extern int optimizer_debug;
 extern InterCodeList* label_array;
@@ -291,5 +292,11 @@ Operand gen_operand(int operand_kind, int val, int number, char* name) {
 }
 
 Operand new_temp() { return gen_operand(OP_TEMP, -1, temp_number++, NULL); }
+
+Operand new_addr() {
+    char* addr_name = (char*)malloc(32);
+    sprintf(addr_name, "addr%d", addr_number++);
+    return gen_operand(OP_ADDRESS, -1, -1, addr_name);
+}
 
 Operand new_label() { return gen_operand(OP_LABEL, -1, label_number++, NULL); }
