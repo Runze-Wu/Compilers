@@ -198,7 +198,8 @@ void show_op(Operand op, FILE* ir_out) {
     }
 }
 
-void gen_ir(InterCodeList ir_list_head, int ir_kind, Operand op1, Operand op2, Operand op3, int dec_size, char* relop) {
+InterCode gen_ir(InterCodeList ir_list_head, int ir_kind, Operand op1, Operand op2, Operand op3, int dec_size,
+                 char* relop) {
     InterCode res_ir = (InterCode)malloc(sizeof(struct InterCode_));
     assert(res_ir != NULL);
     res_ir->kind = ir_kind;
@@ -270,7 +271,8 @@ void gen_ir(InterCodeList ir_list_head, int ir_kind, Operand op1, Operand op2, O
             break;
     }
     if (translator_debug) show_ir(res_ir, stdout);
-    add_ir(ir_list_head, res_ir);
+    if (ir_list_head) add_ir(ir_list_head, res_ir);
+    return res_ir;
 }
 
 Operand gen_operand(int operand_kind, int val, int number, char* name) {

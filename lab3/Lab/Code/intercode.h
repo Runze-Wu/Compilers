@@ -89,8 +89,8 @@ void delete_ir(InterCodeList ir);                             // 将ir删除
 void show_ir_list(InterCodeList ir_list_head, FILE* ir_out);  // 打印IR链表
 void show_ir(InterCode ir, FILE* ir_out);                     // 打印IR
 void show_op(Operand op, FILE* ir_out);                       // 打印OP
-void gen_ir(InterCodeList ir_list_head, int ir_kind, Operand op1, Operand op2, Operand op3, int dec_size,
-            char* relop);                                            // 生成IR
+InterCode gen_ir(InterCodeList ir_list_head, int ir_kind, Operand op1, Operand op2, Operand op3, int dec_size,
+                 char* relop);                                       // 生成IR
 Operand gen_operand(int operand_kind, int val, int no, char* name);  // 产生Operand
 Operand new_temp();                                                  // 产生一个临时变量
 Operand new_addr();                                                  // 产生一个地址
