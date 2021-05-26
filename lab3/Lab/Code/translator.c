@@ -418,7 +418,7 @@ void translate_Exp(Node root, Operand place) {
                 if (offset->kind == OP_CONSTANT && offset->u.const_val == 0) {
                     gen_ir(global_ir_list_head, IR_ADDR, place, t1, NULL, -1, NULL);
                 } else {
-                    Operand base = new_temp();
+                    Operand base = new_addr();
                     // base := &addr
                     gen_ir(global_ir_list_head, IR_ADDR, base, t1, NULL, -1, NULL);
                     // place := base + offset
