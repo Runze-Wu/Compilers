@@ -10,17 +10,26 @@
 #define ENTRY -10
 #define EXIT -100
 // #define LVA_DEBUG
+// #define CP_DEBUG
 #define USE 1
 #define DEF 2
+#define BOOL 0
+#define CPPAIR 1
 
 typedef struct FunctionBlock_* FunctionBlock;
 typedef struct BasicBlockList_* BasicBlockList;
 typedef struct BasicBlock_* BasicBlock;
+typedef struct CPPair_ CPPair;
 int global_bb_count;       // BB块个数
 int global_fb_count;       // FB块个数
 int fb_number;             // FB块编号
 int var_nums;              // 变量加临时变量个数
 BasicBlockList* bb_array;  // BB链表数组，便于索引
+
+struct CPPair_ {
+    enum { UNDEF, NAC, CONST } kind;
+    int val;
+};
 
 struct FunctionBlock_ {          // 函数块
     int fb_no;                   // FB块编号
@@ -67,20 +76,35 @@ void show_bb(BasicBlock bb, FILE* ir_out);                                  // �
  * 活跃变量分析
  * 死赋值消除
  */
-void dump_matrix(bool** array, int m, int n);                   // 打印矩阵
-bool** allocate_matrix(int m, int n);                           // 申请位矩阵
-void release_matrix(bool** array, int len);                     // 释放位矩阵空间
-void bitset_union(bool* a, bool* b, bool* res, int len);        // 位向量合并c=a+b
-void bitset_minus(bool* a, bool* b, bool* res, int len);        // 位向量差c=a-b
-bool bitset_diff(bool* a, bool* b, int len);                    // 位向量是否不同
-void set_bitset(Operand op, bool* bitset, bool val);            // 设置位向量
-int get_variable_count();                                       // 获取临时变量和普通变量的个数
-int get_variable_id(Operand op);                                // 获取变量编号
-void set_use_def(Operand op, int kind, bool* use, bool* def);   // 设置use和def的位向量
-void BB_use_def(BasicBlock bb, bool* use, bool* def);           // 分析BB的use和def
-void IR_use_def(InterCode ir, bool* use, bool* def);            // 分析一条指令的use和def
-void LVA();                                                     // 活跃变量分析入口
-void LVA_meet(int bb_first, int bb_no, bool** IN, bool** OUT);  // 活跃变量分析控制流方程
+bool** allocate_BOOL_matrix(int m, int n);                         // 申请位矩阵
+void release_BOOL_matrix(bool** array, int len);                   // 释放位矩阵空间
+void bitset_union(bool* a, bool* b, bool* res, int len);           // 位向量合并c=a+b
+void bitset_minus(bool* a, bool* b, bool* res, int len);           // 位向量差c=a-b
+bool bitset_diff(bool* a, bool* b, int len);                       // 位向量是否不同
+void set_bitset(Operand op, bool* bitset, bool val);               // 设置位向量
+int get_variable_count();                                          // 获取临时变量和普通变量的个数
+int get_variable_id(Operand op);                                   // 获取变量编号
+void set_LVA_use_def(Operand op, int kind, bool* use, bool* def);  // 设置use和def的位向量
+void LVA_BB_use_def(BasicBlock bb, bool* use, bool* def);          // 分析BB的use和def
+void LVA_IR_use_def(InterCode ir, bool* use, bool* def);           // 分析一条指令的use和def
+void LVA();                                                        // 活跃变量分析入口
+void LVA_meet(int bb_first, int bb_no, bool** IN, bool** OUT);     // 活跃变量分析控制流方程
 bool LVA_transfer(int bb_no, bool* in_b, bool* out_b, bool* use, bool* def);  // 活跃变量分析传递方程
 void DAE(BasicBlock bb, bool* out);                                           // 死代码消除入口
+bool judge_IR_DA(InterCode ir, bool* out);                                    // 修改具有副作用的OUT
+
+void dump_PAIR_matrix(CPPair** array, int m, int n);               // 打印Pair矩阵
+CPPair** allocate_PAIR_matrix(int m, int n);                       // 申请Pair矩阵
+void release_PAIR_matrix(CPPair** array, int len);                 // 释放Pair矩阵空间
+void pairset_union(CPPair* a, CPPair* b, CPPair* res, int len);    // Pair向量合并c=a+b
+void pairset_minus(CPPair* a, CPPair* b, CPPair* res, int len);    // Pair向量差c=a-b
+bool pairset_diff(CPPair* a, CPPair* b, int len);                  // Pair向量是否不同
+void set_CP_out(Operand op, int kind, int val, CPPair* out);       // 设置对应位置的out
+void CP_BB_out(BasicBlock bb, CPPair* in, CPPair* out);            // 分析BB的out
+void CP_IR_out(InterCode ir, CPPair* out);                         // 分析一条指令的gen和kill
+void CP();                                                         // 常量传播入口
+void CP_meet(int bb_first, int bb_no, CPPair** IN, CPPair** OUT);  // 常量传播分析控制流方程
+bool CP_transfer(int bb_no, CPPair* in_b, CPPair* out_b);          // 常量传播传递方程
+void CP_BB_constant(BasicBlock bb, CPPair* in);
+void CP_IR_constant(InterCodeList ir_point, CPPair* out);
 #endif

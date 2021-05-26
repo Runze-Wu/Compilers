@@ -19,6 +19,7 @@ void optimize() {
     construct_fb_array();
     construct_cfg();
     show_cfg();
+    CP();
     LVA();
 }
 
@@ -302,7 +303,7 @@ void show_bb(BasicBlock bb, FILE* ir_out) {
     } while (cur != bb->last->next);
 }
 
-void dump_matrix(bool** array, int m, int n) {
+void dump_BOOL_matrix(bool** array, int m, int n) {
     for (int i = 0; i < m; i++) {
         for (int j = 0; j < n; j++) {
             printf("%d", array[i][j]);
@@ -311,7 +312,7 @@ void dump_matrix(bool** array, int m, int n) {
     }
 }
 
-bool** allocate_matrix(int m, int n) {
+bool** allocate_BOOL_matrix(int m, int n) {
     bool** array = (bool**)calloc(m, sizeof(bool*));
     for (int i = 0; i < m; i++) {
         array[i] = (bool*)calloc(n, sizeof(bool));
@@ -320,7 +321,7 @@ bool** allocate_matrix(int m, int n) {
     return array;
 }
 
-void release_matrix(bool** array, int len) {
+void release_BOOL_matrix(bool** array, int len) {
     for (int i = 0; i < len; i++) {
         free(array[i]);
     }
@@ -350,7 +351,7 @@ void set_bitset(Operand op, bool* bitset, bool val) {
     int id = get_variable_id(op);
     if (id != -1) bitset[id] = val;
 #ifdef LVA_DEBUG
-    if (id != -1 && op->kind == OP_VARIABLE) printf("%s-%d set %d\n", op->u.name, id, val);
+    if (id != -1 && op->kind == OP_VARIABLE) printf("var-%d set %d\n", id, val);
 #endif
 }
 
@@ -366,7 +367,7 @@ int get_variable_id(Operand op) {
     return id;
 }
 
-void set_use_def(Operand op, int kind, bool* use, bool* def) {
+void set_LVA_use_def(Operand op, int kind, bool* use, bool* def) {
     int id = get_variable_id(op);
     if (id != -1) {
         if (kind == DEF) {
@@ -379,15 +380,15 @@ void set_use_def(Operand op, int kind, bool* use, bool* def) {
     }
 }
 
-void BB_use_def(BasicBlock bb, bool* use, bool* def) {
+void LVA_BB_use_def(BasicBlock bb, bool* use, bool* def) {
     InterCodeList cur = bb->last;
     do {
-        IR_use_def(cur->code, use, def);
+        LVA_IR_use_def(cur->code, use, def);
         cur = cur->prev;
     } while (cur != bb->first->prev);
 }
 
-void IR_use_def(InterCode ir, bool* use, bool* def) {
+void LVA_IR_use_def(InterCode ir, bool* use, bool* def) {
     assert(ir != NULL);
     switch (ir->kind) {
         case IR_LABEL:
@@ -399,34 +400,34 @@ void IR_use_def(InterCode ir, bool* use, bool* def) {
         case IR_RETURN:
         case IR_ARG:
         case IR_WRITE:
-            set_use_def(ir->u.unary_ir.op, USE, use, def);
+            set_LVA_use_def(ir->u.unary_ir.op, USE, use, def);
             break;
         case IR_DEC:
-            set_use_def(ir->u.dec.op, USE, use, def);
+            set_LVA_use_def(ir->u.dec.op, USE, use, def);
             break;
         case IR_PARAM:
         case IR_READ:
-            set_use_def(ir->u.unary_ir.op, DEF, use, def);
+            set_LVA_use_def(ir->u.unary_ir.op, DEF, use, def);
             break;
         case IR_ASSIGN:
         case IR_ADDR:
         case IR_LOAD:
         case IR_STORE:
         case IR_CALL:
-            set_use_def(ir->u.binary_ir.left, DEF, use, def);
-            set_use_def(ir->u.binary_ir.right, USE, use, def);
+            set_LVA_use_def(ir->u.binary_ir.left, DEF, use, def);
+            set_LVA_use_def(ir->u.binary_ir.right, USE, use, def);
             break;
         case IR_ADD:
         case IR_SUB:
         case IR_MUL:
         case IR_DIV:
-            set_use_def(ir->u.ternary_ir.res, DEF, use, def);
-            set_use_def(ir->u.ternary_ir.op1, USE, use, def);
-            set_use_def(ir->u.ternary_ir.op2, USE, use, def);
+            set_LVA_use_def(ir->u.ternary_ir.res, DEF, use, def);
+            set_LVA_use_def(ir->u.ternary_ir.op1, USE, use, def);
+            set_LVA_use_def(ir->u.ternary_ir.op2, USE, use, def);
             break;
         case IR_IF_GOTO:
-            set_use_def(ir->u.if_goto.x, USE, use, def);
-            set_use_def(ir->u.if_goto.y, USE, use, def);
+            set_LVA_use_def(ir->u.if_goto.x, USE, use, def);
+            set_LVA_use_def(ir->u.if_goto.y, USE, use, def);
             break;
         default:
             assert(0);
@@ -439,20 +440,20 @@ void LVA() {
     for (int i = 0; i < fb_number; i++) {
         int bb_first = fb_array[i]->bb_first, bb_last = fb_array[i]->bb_last;
         int bb_nums = fb_array[i]->bb_nums;
-        bool** IN = allocate_matrix(bb_nums, var_nums);
-        bool** OUT = allocate_matrix(bb_nums, var_nums);
-        bool** use = allocate_matrix(bb_nums, var_nums);
-        bool** def = allocate_matrix(bb_nums, var_nums);
+        bool** IN = allocate_BOOL_matrix(bb_nums, var_nums);
+        bool** OUT = allocate_BOOL_matrix(bb_nums, var_nums);
+        bool** use = allocate_BOOL_matrix(bb_nums, var_nums);
+        bool** def = allocate_BOOL_matrix(bb_nums, var_nums);
         // 获取use和def
         for (int j = bb_last; j >= bb_first; j--) {
             int bb_off = j - bb_first;
-            BB_use_def(bb_array[j]->bb, use[bb_off], def[bb_off]);
+            LVA_BB_use_def(bb_array[j]->bb, use[bb_off], def[bb_off]);
         }
 #ifdef LVA_DEBUG
         printf("--------------use-------------------\n");
-        dump_matrix(use, bb_nums, var_nums);
+        dump_BOOL_matrix(use, bb_nums, var_nums);
         printf("--------------def-------------------\n");
-        dump_matrix(def, bb_nums, var_nums);
+        dump_BOOL_matrix(def, bb_nums, var_nums);
 #endif
         // 迭代更新,趋近不动点
         bool change;
@@ -467,17 +468,17 @@ void LVA() {
         } while (change);
 #ifdef LVA_DEBUG
         printf("--------------IN-------------------\n");
-        dump_matrix(IN, bb_nums, var_nums);
+        dump_BOOL_matrix(IN, bb_nums, var_nums);
         printf("--------------OUT-------------------\n");
-        dump_matrix(OUT, bb_nums, var_nums);
+        dump_BOOL_matrix(OUT, bb_nums, var_nums);
 #endif
         for (int j = bb_last; j >= bb_first; j--) {
             DAE(bb_array[j]->bb, OUT[j - bb_first]);
         }
-        release_matrix(IN, bb_nums);
-        release_matrix(OUT, bb_nums);
-        release_matrix(use, bb_nums);
-        release_matrix(def, bb_nums);
+        release_BOOL_matrix(IN, bb_nums);
+        release_BOOL_matrix(OUT, bb_nums);
+        release_BOOL_matrix(use, bb_nums);
+        release_BOOL_matrix(def, bb_nums);
     }
 }
 
@@ -494,7 +495,7 @@ void LVA_meet(int bb_first, int bb_no, bool** IN, bool** OUT) {
     }
 #ifdef LVA_DEBUG
     printf("bb%d-out after union\n", bb_no);
-    dump_matrix(&OUT[bb_no - bb_first], 1, var_nums);
+    dump_BOOL_matrix(&OUT[bb_no - bb_first], 1, var_nums);
 #endif
 }
 
@@ -510,14 +511,14 @@ bool LVA_transfer(int bb_no, bool* in_b, bool* out_b, bool* use, bool* def) {
     free(temp);
 #ifdef LVA_DEBUG
     printf("bb%d-in after transfer\n", bb_no);
-    dump_matrix(&in_b, 1, var_nums);
+    dump_BOOL_matrix(&in_b, 1, var_nums);
 #endif
     return change;
 }
 
 bool judge_IR_DA(InterCode ir, bool* out) {
     bool result = false;
-    int res_id = -1;
+    int res_id = UNKNOWN;
     assert(ir != NULL);
     switch (ir->kind) {
         case IR_LABEL:
@@ -586,7 +587,7 @@ void DAE(BasicBlock bb, bool* out) {
     for (int i = 0; i < var_nums; i++) temp_out[i] = out[i];
 #ifdef LVA_DEBUG
     printf("bb%d-out\n", bb->bb_no);
-    dump_matrix(&temp_out, 1, var_nums);
+    dump_BOOL_matrix(&temp_out, 1, var_nums);
 #endif
     InterCodeList cur = bb->last;
     do {
@@ -600,4 +601,460 @@ void DAE(BasicBlock bb, bool* out) {
         cur = cur->prev;
     } while (cur != bb->first->prev);
     free(temp_out);
+}
+
+void dump_PAIR_matrix(CPPair** array, int m, int n) {
+    for (int i = 0; i < m; i++) {
+        for (int j = 0; j < n; j++) {
+            printf("%d-%d ", array[i][j].kind, array[i][j].val);
+        }
+        printf("\n");
+    }
+}
+
+CPPair** allocate_PAIR_matrix(int m, int n) {
+    CPPair** array = (CPPair**)calloc(m, sizeof(CPPair*));
+    for (int i = 0; i < m; i++) {
+        array[i] = (CPPair*)calloc(n, sizeof(CPPair));
+        for (int j = 0; j < n; j++) {
+            array[i][j].kind = UNDEF;
+            array[i][j].val = UNKNOWN;
+        }
+    }
+    return array;
+}
+
+void release_PAIR_matrix(CPPair** array, int len) {
+    for (int i = 0; i < len; i++) {
+        free(array[i]);
+    }
+    free(array);
+}
+
+void pairset_union(CPPair* a, CPPair* b, CPPair* res, int len) {
+    for (int i = 0; i < len; i++) {
+        if (a[i].kind == NAC || b[i].kind == NAC) {
+            res[i].kind = NAC;
+        } else if (a[i].kind == UNDEF && b[i].kind == UNDEF) {
+            res[i].kind = UNDEF;
+        } else if (a[i].kind == UNDEF && b[i].kind == CONST) {
+            res[i].kind = b[i].kind;
+            res[i].val = b[i].val;
+        } else if (b[i].kind == UNDEF && a[i].kind == CONST) {
+            res[i].kind = a[i].kind;
+            res[i].val = a[i].val;
+        } else {  // CONST CONST
+            assert(a[i].kind == CONST && b[i].kind == CONST);
+            if (a[i].val != b[i].val) {
+                res[i].kind = NAC;
+            } else {
+                res[i].kind = CONST;
+                res[i].val = a[i].val;
+            }
+        }
+    }
+}
+
+bool pairset_diff(CPPair* a, CPPair* b, int len) {
+    for (int i = 0; i < len; i++) {
+        if (a[i].kind != b[i].kind) return true;
+        if (a[i].kind == CONST && a[i].val != b[i].val) return true;
+    }
+    return false;
+}
+
+void set_CP_out(Operand op, int kind, int val, CPPair* out) {
+    int id = get_variable_id(op);
+    if (id != -1) {
+        out[id].kind = kind;
+        out[id].val = val;
+    }
+}
+
+void CP_BB_out(BasicBlock bb, CPPair* in, CPPair* out) {
+    for (int i = 0; i < var_nums; i++) {
+        out[i].kind = in[i].kind;
+        out[i].val = in[i].val;
+    }
+    InterCodeList cur = bb->first;
+    do {
+        CP_IR_out(cur->code, out);
+        cur = cur->next;
+    } while (cur != bb->last->next);
+}
+
+void CP_IR_out(InterCode ir, CPPair* out) {
+    assert(ir != NULL);
+    switch (ir->kind) {
+        case IR_LABEL:
+        case IR_FUNC:
+        case IR_GOTO:
+        case IR_RETURN:
+        case IR_ARG:
+        case IR_WRITE:
+        case IR_DEC:
+        case IR_IF_GOTO:
+            break;
+        case IR_PARAM:
+        case IR_READ:
+            set_CP_out(ir->u.unary_ir.op, NAC, UNKNOWN, out);
+            break;
+        case IR_ASSIGN:
+        case IR_CALL: {
+            int left_id = get_variable_id(ir->u.binary_ir.left);
+            int right_id = get_variable_id(ir->u.binary_ir.right);
+            int right_kind = ir->u.binary_ir.right->kind;
+            if (left_id != -1) {
+                if (right_id != -1) {
+                    if (out[right_id].kind == CONST) {
+                        set_CP_out(ir->u.binary_ir.left, CONST, out[right_id].val, out);
+                    } else if (out[right_id].kind == NAC) {
+                        set_CP_out(ir->u.binary_ir.left, NAC, UNKNOWN, out);
+                    } else {
+                        set_CP_out(ir->u.binary_ir.left, UNDEF, UNKNOWN, out);
+                    }
+                } else if (right_kind == OP_CONSTANT) {
+                    set_CP_out(ir->u.binary_ir.left, CONST, ir->u.binary_ir.right->u.const_val, out);
+                } else {
+                    set_CP_out(ir->u.binary_ir.left, NAC, UNKNOWN, out);
+                }
+            }
+            break;
+        }
+        case IR_ADDR:
+        case IR_LOAD:
+        case IR_STORE:
+            set_CP_out(ir->u.binary_ir.left, NAC, UNKNOWN, out);
+            break;
+        case IR_ADD:
+        case IR_SUB:
+        case IR_MUL:
+        case IR_DIV: {
+            int res_id = get_variable_id(ir->u.ternary_ir.res);
+            int op1_id = get_variable_id(ir->u.ternary_ir.op1);
+            int op2_id = get_variable_id(ir->u.ternary_ir.op2);
+            int op1_kind = ir->u.ternary_ir.op1->kind;
+            int op2_kind = ir->u.ternary_ir.op2->kind;
+            if (res_id != -1) {
+                if (op1_id != -1 && op2_id != -1) {  //操作数均为变量
+                    if (out[op1_id].kind == CONST && out[op2_id].kind == CONST) {
+                        int val;
+                        int op1_val = out[op1_id].val, op2_val = out[op2_id].val;
+                        if (ir->kind == IR_ADD) {
+                            val = op1_val + op2_val;
+                        } else if (ir->kind == IR_SUB) {
+                            val = op1_val - op2_val;
+                        } else if (ir->kind == IR_MUL) {
+                            val = op1_val * op2_val;
+                        } else if (ir->kind == IR_DIV) {
+                            val = op2_val ? op1_val / op2_val : 0;
+                        }
+                        set_CP_out(ir->u.ternary_ir.res, CONST, val, out);
+                    } else if (out[op1_id].kind == NAC || out[op2_id].kind == NAC) {
+                        set_CP_out(ir->u.ternary_ir.res, NAC, UNKNOWN, out);
+                    } else {
+                        set_CP_out(ir->u.ternary_ir.res, UNDEF, UNKNOWN, out);
+                    }
+                } else if (op1_id != -1 && op2_kind == OP_CONSTANT) {
+                    if (out[op1_id].kind == CONST) {
+                        int val;
+                        int op1_val = out[op1_id].val, op2_val = ir->u.ternary_ir.op2->u.const_val;
+                        if (ir->kind == IR_ADD) {
+                            val = op1_val + op2_val;
+                        } else if (ir->kind == IR_SUB) {
+                            val = op1_val - op2_val;
+                        } else if (ir->kind == IR_MUL) {
+                            val = op1_val * op2_val;
+                        } else if (ir->kind == IR_DIV) {
+                            val = op2_val ? op1_val / op2_val : 0;
+                        }
+                        set_CP_out(ir->u.ternary_ir.res, CONST, val, out);
+                    } else if (out[op1_id].kind == UNDEF) {
+                        set_CP_out(ir->u.ternary_ir.res, UNDEF, UNKNOWN, out);
+                    } else {
+                        set_CP_out(ir->u.ternary_ir.res, NAC, UNKNOWN, out);
+                    }
+                } else if (op2_id != -1 && op1_kind == OP_CONSTANT) {
+                    if (out[op2_id].kind == CONST) {
+                        int val;
+                        int op1_val = ir->u.ternary_ir.op1->u.const_val, op2_val = out[op2_id].val;
+                        if (ir->kind == IR_ADD) {
+                            val = op1_val + op2_val;
+                        } else if (ir->kind == IR_SUB) {
+                            val = op1_val - op2_val;
+                        } else if (ir->kind == IR_MUL) {
+                            val = op1_val * op2_val;
+                        } else if (ir->kind == IR_DIV) {
+                            val = op2_val ? op1_val / op2_val : 0;
+                        }
+                        set_CP_out(ir->u.ternary_ir.res, CONST, val, out);
+                    } else if (out[op2_id].kind == UNDEF) {
+                        set_CP_out(ir->u.ternary_ir.res, UNDEF, UNKNOWN, out);
+                    } else {
+                        set_CP_out(ir->u.ternary_ir.res, NAC, UNKNOWN, out);
+                    }
+                } else if (op1_kind == OP_CONSTANT && op2_kind == OP_CONSTANT) {
+                    int val;
+                    int op1_val = ir->u.ternary_ir.op1->u.const_val, op2_val = ir->u.ternary_ir.op2->u.const_val;
+                    if (ir->kind == IR_ADD) {
+                        val = op1_val + op2_val;
+                    } else if (ir->kind == IR_SUB) {
+                        val = op1_val - op2_val;
+                    } else if (ir->kind == IR_MUL) {
+                        val = op1_val * op2_val;
+                    } else if (ir->kind == IR_DIV) {
+                        val = op2_val ? op1_val / op2_val : 0;
+                    }
+                    set_CP_out(ir->u.ternary_ir.res, CONST, val, out);
+                } else {
+                    set_CP_out(ir->u.ternary_ir.res, NAC, UNKNOWN, out);
+                }
+            }
+            break;
+        }
+        default:
+            assert(0);
+            break;
+    }
+}
+
+void CP() {
+    var_nums = get_variable_count();
+    for (int i = 0; i < fb_number; i++) {
+        int bb_first = fb_array[i]->bb_first, bb_last = fb_array[i]->bb_last;
+        int bb_nums = fb_array[i]->bb_nums;
+        CPPair** IN = allocate_PAIR_matrix(bb_nums, var_nums);
+        CPPair** OUT = allocate_PAIR_matrix(bb_nums, var_nums);
+        // 迭代更新,趋近不动点
+        bool change;
+        do {
+            change = false;
+            for (int j = bb_first; j <= bb_last; j++) {
+                assert(bb_array[j]->bb->bb_no == j);
+                CP_meet(bb_first, j, IN, OUT);
+                int bb_off = j - bb_first;
+                change = change | CP_transfer(j, IN[bb_off], OUT[bb_off]);
+            }
+        } while (change);
+#ifdef CP_DEBUG
+        printf("--------------IN-------------------\n");
+        dump_PAIR_matrix(IN, bb_nums, var_nums);
+        printf("--------------OUT-------------------\n");
+        dump_PAIR_matrix(OUT, bb_nums, var_nums);
+#endif
+        for (int j = bb_first; j <= bb_last; j++) {
+            CP_BB_constant(bb_array[j]->bb, IN[j - bb_first]);
+        }
+        release_PAIR_matrix(IN, bb_nums);
+        release_PAIR_matrix(OUT, bb_nums);
+    }
+}
+
+void CP_meet(int bb_first, int bb_no, CPPair** IN, CPPair** OUT) {
+    // IN[B]=U_{P a pre of B}OUT[P]
+    BasicBlockList pre_head = bb_array[bb_no]->bb->pre;
+    BasicBlockList cur = pre_head->next;
+    for (BasicBlockList cur = pre_head->next; cur != pre_head; cur = cur->next) {
+        int pre_no = cur->bb->bb_no;
+        if (pre_no == ENTRY) continue;
+        assert(pre_no != UNKNOWN || pre_no != EXIT);  // 每个BB都应有编号，EXIT不应有后继
+        int bb_off = bb_no - bb_first, pre_off = pre_no - bb_first;
+        pairset_union(IN[bb_off], OUT[pre_off], IN[bb_off], var_nums);
+    }
+#ifdef CP_DEBUG
+    printf("bb%d-in after union\n", bb_no);
+    dump_PAIR_matrix(&IN[bb_no - bb_first], 1, var_nums);
+#endif
+}
+
+bool CP_transfer(int bb_no, CPPair* in_b, CPPair* out_b) {
+    // OUT[B]=gen_B U (IN[B]-kill_B)
+    CPPair* prev_out = (CPPair*)calloc(var_nums, sizeof(CPPair));
+    for (int i = 0; i < var_nums; i++) {
+        prev_out[i].kind = out_b[i].kind;
+        prev_out[i].val = out_b[i].val;
+    }
+    CP_BB_out(bb_array[bb_no]->bb, in_b, out_b);
+    bool change = pairset_diff(prev_out, out_b, var_nums);
+    free(prev_out);
+#ifdef CP_DEBUG
+    printf("bb%d-out after transfer\n", bb_no);
+    dump_PAIR_matrix(&out_b, 1, var_nums);
+#endif
+    return change;
+}
+
+void CP_BB_constant(BasicBlock bb, CPPair* in) {
+    CPPair* prev_in = (CPPair*)calloc(var_nums, sizeof(CPPair));
+    for (int i = 0; i < var_nums; i++) {
+        prev_in[i].kind = in[i].kind;
+        prev_in[i].val = in[i].val;
+    }
+    InterCodeList cur = bb->first;
+    do {
+        CP_IR_constant(cur, prev_in);
+        cur = cur->next;
+    } while (cur != bb->last->next);
+    free(prev_in);
+}
+void CP_IR_constant(InterCodeList ir_point, CPPair* out) {
+    assert(ir_point != NULL);
+    InterCode ir = ir_point->code;
+    switch (ir->kind) {
+        case IR_LABEL:
+        case IR_FUNC:
+        case IR_GOTO:
+        case IR_DEC:
+        case IR_IF_GOTO:
+            break;
+        case IR_RETURN:
+        case IR_ARG:
+        case IR_WRITE: {
+            int id = get_variable_id(ir->u.unary_ir.op);
+            if (id != -1 && out[id].kind == CONST) {
+                ir->u.unary_ir.op = gen_operand(OP_CONSTANT, out[id].val, -1, NULL);
+            }
+            break;
+        }
+        case IR_PARAM:
+        case IR_READ:
+            set_CP_out(ir->u.unary_ir.op, NAC, UNKNOWN, out);
+            break;
+        case IR_ASSIGN:
+        case IR_CALL: {
+            int left_id = get_variable_id(ir->u.binary_ir.left);
+            int right_id = get_variable_id(ir->u.binary_ir.right);
+            int right_kind = ir->u.binary_ir.right->kind;
+            if (left_id != -1) {
+                if (right_id != -1) {
+                    if (out[right_id].kind == CONST) {
+                        set_CP_out(ir->u.binary_ir.left, CONST, out[right_id].val, out);
+                        Operand right_val = gen_operand(OP_CONSTANT, out[right_id].val, -1, NULL);
+                        ir_point->code = gen_ir(NULL, IR_ASSIGN, ir->u.binary_ir.left, right_val, NULL, -1, NULL);
+                    } else if (out[right_id].kind == NAC) {
+                        set_CP_out(ir->u.binary_ir.left, NAC, UNKNOWN, out);
+                    } else {
+                        set_CP_out(ir->u.binary_ir.left, UNDEF, UNKNOWN, out);
+                    }
+                } else if (right_kind == OP_CONSTANT) {
+                    set_CP_out(ir->u.binary_ir.left, CONST, ir->u.binary_ir.right->u.const_val, out);
+                    Operand right_val = gen_operand(OP_CONSTANT, ir->u.binary_ir.right->u.const_val, -1, NULL);
+                    ir_point->code = gen_ir(NULL, IR_ASSIGN, ir->u.binary_ir.left, right_val, NULL, -1, NULL);
+                } else {
+                    set_CP_out(ir->u.binary_ir.left, NAC, UNKNOWN, out);
+                }
+            }
+            break;
+        }
+        case IR_ADDR:
+        case IR_LOAD:
+        case IR_STORE:
+            set_CP_out(ir->u.binary_ir.left, NAC, UNKNOWN, out);
+            break;
+        case IR_ADD:
+        case IR_SUB:
+        case IR_MUL:
+        case IR_DIV: {
+            int res_id = get_variable_id(ir->u.ternary_ir.res);
+            int op1_id = get_variable_id(ir->u.ternary_ir.op1);
+            int op2_id = get_variable_id(ir->u.ternary_ir.op2);
+            int op1_kind = ir->u.ternary_ir.op1->kind;
+            int op2_kind = ir->u.ternary_ir.op2->kind;
+            if (op1_id != -1 && out[op1_id].kind == CONST) {
+                int op1_val = out[op1_id].val;
+                ir->u.ternary_ir.op1 = gen_operand(OP_CONSTANT, op1_val, -1, NULL);
+            }
+            if (op2_id != -1 && out[op2_id].kind == CONST) {
+                int op2_val = out[op2_id].val;
+                ir->u.ternary_ir.op2 = gen_operand(OP_CONSTANT, op2_val, -1, NULL);
+            }
+            if (res_id != -1) {
+                if (op1_id != -1 && op2_id != -1) {  //操作数均为变量
+                    if (out[op1_id].kind == CONST && out[op2_id].kind == CONST) {
+                        int val;
+                        int op1_val = out[op1_id].val, op2_val = out[op2_id].val;
+                        if (ir->kind == IR_ADD) {
+                            val = op1_val + op2_val;
+                        } else if (ir->kind == IR_SUB) {
+                            val = op1_val - op2_val;
+                        } else if (ir->kind == IR_MUL) {
+                            val = op1_val * op2_val;
+                        } else if (ir->kind == IR_DIV) {
+                            val = op2_val ? op1_val / op2_val : 0;
+                        }
+                        set_CP_out(ir->u.ternary_ir.res, CONST, val, out);
+                        Operand right_val = gen_operand(OP_CONSTANT, val, -1, NULL);
+                        ir_point->code = gen_ir(NULL, IR_ASSIGN, ir->u.ternary_ir.res, right_val, NULL, -1, NULL);
+                    } else if (out[op1_id].kind == NAC || out[op2_id].kind == NAC) {
+                        set_CP_out(ir->u.ternary_ir.res, NAC, UNKNOWN, out);
+                    } else {
+                        set_CP_out(ir->u.ternary_ir.res, UNDEF, UNKNOWN, out);
+                    }
+                } else if (op1_id != -1 && op2_kind == OP_CONSTANT) {
+                    if (out[op1_id].kind == CONST) {
+                        int val;
+                        int op1_val = out[op1_id].val, op2_val = ir->u.ternary_ir.op2->u.const_val;
+                        if (ir->kind == IR_ADD) {
+                            val = op1_val + op2_val;
+                        } else if (ir->kind == IR_SUB) {
+                            val = op1_val - op2_val;
+                        } else if (ir->kind == IR_MUL) {
+                            val = op1_val * op2_val;
+                        } else if (ir->kind == IR_DIV) {
+                            val = op2_val ? op1_val / op2_val : 0;
+                        }
+                        set_CP_out(ir->u.ternary_ir.res, CONST, val, out);
+                        Operand right_val = gen_operand(OP_CONSTANT, val, -1, NULL);
+                        ir_point->code = gen_ir(NULL, IR_ASSIGN, ir->u.ternary_ir.res, right_val, NULL, -1, NULL);
+                    } else if (out[op1_id].kind == UNDEF) {
+                        set_CP_out(ir->u.ternary_ir.res, UNDEF, UNKNOWN, out);
+                    } else {
+                        set_CP_out(ir->u.ternary_ir.res, NAC, UNKNOWN, out);
+                    }
+                } else if (op2_id != -1 && op1_kind == OP_CONSTANT) {
+                    if (out[op2_id].kind == CONST) {
+                        int val;
+                        int op1_val = ir->u.ternary_ir.op1->u.const_val, op2_val = out[op2_id].val;
+                        if (ir->kind == IR_ADD) {
+                            val = op1_val + op2_val;
+                        } else if (ir->kind == IR_SUB) {
+                            val = op1_val - op2_val;
+                        } else if (ir->kind == IR_MUL) {
+                            val = op1_val * op2_val;
+                        } else if (ir->kind == IR_DIV) {
+                            val = op2_val ? op1_val / op2_val : 0;
+                        }
+                        set_CP_out(ir->u.ternary_ir.res, CONST, val, out);
+                        Operand right_val = gen_operand(OP_CONSTANT, val, -1, NULL);
+                        ir_point->code = gen_ir(NULL, IR_ASSIGN, ir->u.ternary_ir.res, right_val, NULL, -1, NULL);
+                    } else if (out[op2_id].kind == UNDEF) {
+                        set_CP_out(ir->u.ternary_ir.res, UNDEF, UNKNOWN, out);
+                    } else {
+                        set_CP_out(ir->u.ternary_ir.res, NAC, UNKNOWN, out);
+                    }
+                } else if (op1_kind == OP_CONSTANT && op2_kind == OP_CONSTANT) {
+                    int val;
+                    int op1_val = ir->u.ternary_ir.op1->u.const_val, op2_val = ir->u.ternary_ir.op2->u.const_val;
+                    if (ir->kind == IR_ADD) {
+                        val = op1_val + op2_val;
+                    } else if (ir->kind == IR_SUB) {
+                        val = op1_val - op2_val;
+                    } else if (ir->kind == IR_MUL) {
+                        val = op1_val * op2_val;
+                    } else if (ir->kind == IR_DIV) {
+                        val = op2_val ? op1_val / op2_val : 0;
+                    }
+                    set_CP_out(ir->u.ternary_ir.res, CONST, val, out);
+                    Operand right_val = gen_operand(OP_CONSTANT, val, -1, NULL);
+                    ir_point->code = gen_ir(NULL, IR_ASSIGN, ir->u.ternary_ir.res, right_val, NULL, -1, NULL);
+                } else {
+                    set_CP_out(ir->u.ternary_ir.res, NAC, UNKNOWN, out);
+                }
+            }
+            break;
+        }
+        default:
+            assert(0);
+            break;
+    }
 }
