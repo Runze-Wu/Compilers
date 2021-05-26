@@ -606,7 +606,7 @@ void DAE(BasicBlock bb, bool* out) {
 void dump_PAIR_matrix(CPPair** array, int m, int n) {
     for (int i = 0; i < m; i++) {
         for (int j = 0; j < n; j++) {
-            printf("%d-%d ", array[i][j].kind, array[i][j].val);
+            printf("%d-%lld ", array[i][j].kind, array[i][j].val);
         }
         printf("\n");
     }
@@ -663,7 +663,7 @@ bool pairset_diff(CPPair* a, CPPair* b, int len) {
     return false;
 }
 
-void set_CP_out(Operand op, int kind, int val, CPPair* out) {
+void set_CP_out(Operand op, int kind, long long val, CPPair* out) {
     int id = get_variable_id(op);
     if (id != -1) {
         out[id].kind = kind;
@@ -738,8 +738,8 @@ void CP_IR_out(InterCode ir, CPPair* out) {
             if (res_id != -1) {
                 if (op1_id != -1 && op2_id != -1) {  //操作数均为变量
                     if (out[op1_id].kind == CONST && out[op2_id].kind == CONST) {
-                        int val;
-                        int op1_val = out[op1_id].val, op2_val = out[op2_id].val;
+                        long long val;
+                        long long op1_val = out[op1_id].val, op2_val = out[op2_id].val;
                         if (ir->kind == IR_ADD) {
                             val = op1_val + op2_val;
                         } else if (ir->kind == IR_SUB) {
@@ -757,8 +757,8 @@ void CP_IR_out(InterCode ir, CPPair* out) {
                     }
                 } else if (op1_id != -1 && op2_kind == OP_CONSTANT) {
                     if (out[op1_id].kind == CONST) {
-                        int val;
-                        int op1_val = out[op1_id].val, op2_val = ir->u.ternary_ir.op2->u.const_val;
+                        long long val;
+                        long long op1_val = out[op1_id].val, op2_val = ir->u.ternary_ir.op2->u.const_val;
                         if (ir->kind == IR_ADD) {
                             val = op1_val + op2_val;
                         } else if (ir->kind == IR_SUB) {
@@ -776,8 +776,8 @@ void CP_IR_out(InterCode ir, CPPair* out) {
                     }
                 } else if (op2_id != -1 && op1_kind == OP_CONSTANT) {
                     if (out[op2_id].kind == CONST) {
-                        int val;
-                        int op1_val = ir->u.ternary_ir.op1->u.const_val, op2_val = out[op2_id].val;
+                        long long val;
+                        long long op1_val = ir->u.ternary_ir.op1->u.const_val, op2_val = out[op2_id].val;
                         if (ir->kind == IR_ADD) {
                             val = op1_val + op2_val;
                         } else if (ir->kind == IR_SUB) {
@@ -794,8 +794,8 @@ void CP_IR_out(InterCode ir, CPPair* out) {
                         set_CP_out(ir->u.ternary_ir.res, NAC, UNKNOWN, out);
                     }
                 } else if (op1_kind == OP_CONSTANT && op2_kind == OP_CONSTANT) {
-                    int val;
-                    int op1_val = ir->u.ternary_ir.op1->u.const_val, op2_val = ir->u.ternary_ir.op2->u.const_val;
+                    long long val;
+                    long long op1_val = ir->u.ternary_ir.op1->u.const_val, op2_val = ir->u.ternary_ir.op2->u.const_val;
                     if (ir->kind == IR_ADD) {
                         val = op1_val + op2_val;
                     } else if (ir->kind == IR_SUB) {
@@ -961,18 +961,18 @@ void CP_IR_constant(InterCodeList ir_point, CPPair* out) {
             int op1_kind = ir->u.ternary_ir.op1->kind;
             int op2_kind = ir->u.ternary_ir.op2->kind;
             if (op1_id != -1 && out[op1_id].kind == CONST) {
-                int op1_val = out[op1_id].val;
+                long long op1_val = out[op1_id].val;
                 ir->u.ternary_ir.op1 = gen_operand(OP_CONSTANT, op1_val, -1, NULL);
             }
             if (op2_id != -1 && out[op2_id].kind == CONST) {
-                int op2_val = out[op2_id].val;
+                long long op2_val = out[op2_id].val;
                 ir->u.ternary_ir.op2 = gen_operand(OP_CONSTANT, op2_val, -1, NULL);
             }
             if (res_id != -1) {
                 if (op1_id != -1 && op2_id != -1) {  //操作数均为变量
                     if (out[op1_id].kind == CONST && out[op2_id].kind == CONST) {
-                        int val;
-                        int op1_val = out[op1_id].val, op2_val = out[op2_id].val;
+                        long long val;
+                        long long op1_val = out[op1_id].val, op2_val = out[op2_id].val;
                         if (ir->kind == IR_ADD) {
                             val = op1_val + op2_val;
                         } else if (ir->kind == IR_SUB) {
@@ -992,8 +992,8 @@ void CP_IR_constant(InterCodeList ir_point, CPPair* out) {
                     }
                 } else if (op1_id != -1 && op2_kind == OP_CONSTANT) {
                     if (out[op1_id].kind == CONST) {
-                        int val;
-                        int op1_val = out[op1_id].val, op2_val = ir->u.ternary_ir.op2->u.const_val;
+                        long long val;
+                        long long op1_val = out[op1_id].val, op2_val = ir->u.ternary_ir.op2->u.const_val;
                         if (ir->kind == IR_ADD) {
                             val = op1_val + op2_val;
                         } else if (ir->kind == IR_SUB) {
@@ -1013,8 +1013,8 @@ void CP_IR_constant(InterCodeList ir_point, CPPair* out) {
                     }
                 } else if (op2_id != -1 && op1_kind == OP_CONSTANT) {
                     if (out[op2_id].kind == CONST) {
-                        int val;
-                        int op1_val = ir->u.ternary_ir.op1->u.const_val, op2_val = out[op2_id].val;
+                        long long val;
+                        long long op1_val = ir->u.ternary_ir.op1->u.const_val, op2_val = out[op2_id].val;
                         if (ir->kind == IR_ADD) {
                             val = op1_val + op2_val;
                         } else if (ir->kind == IR_SUB) {
@@ -1033,8 +1033,8 @@ void CP_IR_constant(InterCodeList ir_point, CPPair* out) {
                         set_CP_out(ir->u.ternary_ir.res, NAC, UNKNOWN, out);
                     }
                 } else if (op1_kind == OP_CONSTANT && op2_kind == OP_CONSTANT) {
-                    int val;
-                    int op1_val = ir->u.ternary_ir.op1->u.const_val, op2_val = ir->u.ternary_ir.op2->u.const_val;
+                    long long val;
+                    long long op1_val = ir->u.ternary_ir.op1->u.const_val, op2_val = ir->u.ternary_ir.op2->u.const_val;
                     if (ir->kind == IR_ADD) {
                         val = op1_val + op2_val;
                     } else if (ir->kind == IR_SUB) {

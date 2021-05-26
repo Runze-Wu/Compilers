@@ -190,7 +190,7 @@ void show_op(Operand op, FILE* ir_out) {
             fprintf(ir_out, "t%d ", op->u.temp_no);
             break;
         case OP_CONSTANT:
-            fprintf(ir_out, "#%d ", op->u.const_val);
+            fprintf(ir_out, "#%lld ", op->u.const_val);
             break;
         default:
             assert(0);
@@ -275,7 +275,7 @@ InterCode gen_ir(InterCodeList ir_list_head, int ir_kind, Operand op1, Operand o
     return res_ir;
 }
 
-Operand gen_operand(int operand_kind, int val, int number, char* name) {
+Operand gen_operand(int operand_kind, long long val, int number, char* name) {
     Operand res_op = (Operand)malloc(sizeof(struct Operand_));
     assert(res_op != NULL);
     res_op->kind = operand_kind;

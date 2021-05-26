@@ -28,7 +28,7 @@ BasicBlockList* bb_array;  // BB链表数组，便于索引
 
 struct CPPair_ {
     enum { UNDEF, NAC, CONST } kind;
-    int val;
+    long long val;
 };
 
 struct FunctionBlock_ {          // 函数块
@@ -93,18 +93,18 @@ bool LVA_transfer(int bb_no, bool* in_b, bool* out_b, bool* use, bool* def);  //
 void DAE(BasicBlock bb, bool* out);                                           // 死代码消除入口
 bool judge_IR_DA(InterCode ir, bool* out);                                    // 修改具有副作用的OUT
 
-void dump_PAIR_matrix(CPPair** array, int m, int n);               // 打印Pair矩阵
-CPPair** allocate_PAIR_matrix(int m, int n);                       // 申请Pair矩阵
-void release_PAIR_matrix(CPPair** array, int len);                 // 释放Pair矩阵空间
-void pairset_union(CPPair* a, CPPair* b, CPPair* res, int len);    // Pair向量合并c=a+b
-void pairset_minus(CPPair* a, CPPair* b, CPPair* res, int len);    // Pair向量差c=a-b
-bool pairset_diff(CPPair* a, CPPair* b, int len);                  // Pair向量是否不同
-void set_CP_out(Operand op, int kind, int val, CPPair* out);       // 设置对应位置的out
-void CP_BB_out(BasicBlock bb, CPPair* in, CPPair* out);            // 分析BB的out
-void CP_IR_out(InterCode ir, CPPair* out);                         // 分析一条指令的gen和kill
-void CP();                                                         // 常量传播入口
-void CP_meet(int bb_first, int bb_no, CPPair** IN, CPPair** OUT);  // 常量传播分析控制流方程
-bool CP_transfer(int bb_no, CPPair* in_b, CPPair* out_b);          // 常量传播传递方程
+void dump_PAIR_matrix(CPPair** array, int m, int n);                // 打印Pair矩阵
+CPPair** allocate_PAIR_matrix(int m, int n);                        // 申请Pair矩阵
+void release_PAIR_matrix(CPPair** array, int len);                  // 释放Pair矩阵空间
+void pairset_union(CPPair* a, CPPair* b, CPPair* res, int len);     // Pair向量合并c=a+b
+void pairset_minus(CPPair* a, CPPair* b, CPPair* res, int len);     // Pair向量差c=a-b
+bool pairset_diff(CPPair* a, CPPair* b, int len);                   // Pair向量是否不同
+void set_CP_out(Operand op, int kind, long long val, CPPair* out);  // 设置对应位置的out
+void CP_BB_out(BasicBlock bb, CPPair* in, CPPair* out);             // 分析BB的out
+void CP_IR_out(InterCode ir, CPPair* out);                          // 分析一条指令的gen和kill
+void CP();                                                          // 常量传播入口
+void CP_meet(int bb_first, int bb_no, CPPair** IN, CPPair** OUT);   // 常量传播分析控制流方程
+bool CP_transfer(int bb_no, CPPair* in_b, CPPair* out_b);           // 常量传播传递方程
 void CP_BB_constant(BasicBlock bb, CPPair* in);
 void CP_IR_constant(InterCodeList ir_point, CPPair* out);
 #endif

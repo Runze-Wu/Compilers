@@ -352,7 +352,8 @@ void translate_Exp(Node root, Operand place) {
             Operand t2 = new_temp();
             translate_Exp(get_child(root, 2), t2);
             t2 = load_value(t2);
-            int ir_kind = -1, val;
+            int ir_kind = -1;
+            long long val;
             if (strcmp(get_child(root, 1)->name, "PLUS") == 0) {
                 ir_kind = IR_ADD;
                 val = t1->u.const_val + t2->u.const_val;

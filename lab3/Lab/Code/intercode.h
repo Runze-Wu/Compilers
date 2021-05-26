@@ -21,13 +21,13 @@ struct Operand_ {
         OP_CONSTANT,   // 常量
     } kind;
     union {
-        int var_no;       // 变量编号
-        int addr_no;      // 地址编号
-        char* func_name;  // 函数名字
-        int array_no;     // 数组编号
-        int label_no;     // 跳转编号
-        int temp_no;      // 临时变量编号
-        int const_val;    // 常量值
+        int var_no;           // 变量编号
+        int addr_no;          // 地址编号
+        char* func_name;      // 函数名字
+        int array_no;         // 数组编号
+        int label_no;         // 跳转编号
+        int temp_no;          // 临时变量编号
+        long long const_val;  // 常量值
     } u;
     Type type;  // 数组元素类型
     int size;   // 数组元素个数
@@ -90,9 +90,9 @@ void show_ir_list(InterCodeList ir_list_head, FILE* ir_out);  // 打印IR链表
 void show_ir(InterCode ir, FILE* ir_out);                     // 打印IR
 void show_op(Operand op, FILE* ir_out);                       // 打印OP
 InterCode gen_ir(InterCodeList ir_list_head, int ir_kind, Operand op1, Operand op2, Operand op3, int dec_size,
-                 char* relop);                                       // 生成IR
-Operand gen_operand(int operand_kind, int val, int no, char* name);  // 产生Operand
-Operand new_temp();                                                  // 产生一个临时变量
-Operand new_addr();                                                  // 产生一个地址
-Operand new_label();                                                 // 产生一个跳转标记
+                 char* relop);                                                 // 生成IR
+Operand gen_operand(int operand_kind, long long val, int number, char* name);  // 产生Operand
+Operand new_temp();                                                            // 产生一个临时变量
+Operand new_addr();                                                            // 产生一个地址
+Operand new_label();                                                           // 产生一个跳转标记
 #endif
