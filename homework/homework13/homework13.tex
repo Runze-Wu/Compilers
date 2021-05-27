@@ -1,0 +1,143 @@
+\documentclass[11pt]{article}
+\usepackage{bm}
+\usepackage{ctex}
+\usepackage{array}
+\usepackage{color}
+\usepackage{float}
+\usepackage{xcolor}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{diagbox}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{tabularx}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\usepackage{enumitem}
+\usepackage{enumerate}
+\definecolor{keywordcolor}{rgb}{0.8,0.1,0.5}
+
+\pagestyle{fancy}
+\hypersetup{hypertex = true,
+			colorlinks = false,
+			linkcolor = blue ,
+			anchorcolor = blue,
+			citecolor = blue}
+\fancyhf{}
+
+
+\definecolor{mygreen}{rgb}{0,0.6,0}  
+\definecolor{mygray}{rgb}{0.5,0.5,0.5}  
+\definecolor{mymauve}{rgb}{0.58,0,0.82}  
+
+\lstset{ %  
+	backgroundcolor=\color{white},   % choose the background color; you must add \usepackage{color} or \usepackage{xcolor}  
+	basicstyle=\footnotesize,        % the size of the fonts that are used for the code  
+	breakatwhitespace=false,         % sets if automatic breaks should only happen at whitespace  
+	breaklines=true,                 % sets automatic line breaking  
+	captionpos=bl,                    % sets the caption-position to bottom  
+	commentstyle=\color{mygreen},    % comment style  
+	deletekeywords={...},            % if you want to delete keywords from the given language  
+	escapeinside={\%*}{*)},          % if you want to add LaTeX within your code  
+	extendedchars=true,              % lets you use non-ASCII characters; for 8-bits encodings only, does not work with UTF-8  
+	frame=single,                    % adds a frame around the code  
+	keepspaces=true,                 % keeps spaces in text, useful for keeping indentation of code (possibly needs columns=flexible)  
+	keywordstyle=\color{blue},       % keyword style  
+	%language=Python,                 % the language of the code  
+	morekeywords={*,...},            % if you want to add more keywords to the set  
+	numbers=right,                    % where to put the line-numbers; possible values are (none, left, right)  
+	numbersep=5pt,                   % how far the line-numbers are from the code  
+	numberstyle=\tiny\color{mygray}, % the style that is used for the line-numbers  
+	rulecolor=\color{black},         % if not set, the frame-color may be changed on line-breaks within not-black text (e.g. comments (green here))  
+	showspaces=false,                % show spaces everywhere adding particular underscores; it overrides 'showstringspaces'  
+	showstringspaces=false,          % underline spaces within strings only  
+	showtabs=false,                  % show tabs within strings adding particular underscores  
+	stepnumber=1,                    % the step between two line-numbers. If it's 1, each line will be numbered  
+	stringstyle=\color{orange},     % string literal style  
+	tabsize=2,                       % sets default tabsize to 2 spaces  
+	%title=myPython.py                   % show the filename of files included with \lstinputlisting; also try caption instead of title  
+}
+
+\chead{Compiler}
+\fancyhead[r]{\bfseries\thepage}
+\fancyhead[l]{\bfseries\rightmark}
+\setlength{\listparindent}{0em} %段落缩进量
+\begin{titlepage}
+	\title{05-26编译原理作业13}
+	\author{
+			\textbf{作者:} {吴润泽}
+			\and {\textbf{学号:} 181860109}
+		}
+\end{titlepage}
+\begin{document}
+\maketitle
+\section*{8.6.5}
+\begin{lstlisting}
+1)	t1	=	a
+	LD	R1,	a
+2)	t2	=	b	*	c
+	LD	R2,	b
+	LD	R3,	c
+	MUL	R2,	R2,	R3
+3)	t3	=	t1	+	t2
+	ADD	R1,	R1,	R2
+4)	x	=	t3
+	ST	x,	R1
+\end{lstlisting}
+\begin{table}[H]
+	\centering
+	\resizebox{\textwidth}{!}{%
+		\begin{tabular}{|c|c|c|c|c|c|c|c|c|c|c|}
+			\hline
+			\diagbox{\textbf{执行代码数目}}{\textbf{描述符状态}} 
+			&
+			\textbf{R1} &
+			\textbf{R2} &
+			\textbf{R3} &
+			\textbf{a} &
+			\textbf{b} &
+			\textbf{c} &
+			\textbf{x} &
+			\textbf{t1} &
+			\textbf{t2} &
+			\textbf{t3} \\ \hline
+			0 &      &    &   & a    & b & c    & x  &    &    &    \\ \hline
+			1 & a,t1 &    &   & a,R1 & b & c    & x  & R1 &    &    \\ \hline
+			2 &      & t2 & c & a    & b & c,R3 & x  & R1 & R2 &    \\ \hline
+			3 & t3   & t2 & c & a    & b & c,R3 & x  &    & R2 & R1 \\ \hline
+			4 & t3,x & t2 & c & a    & b & c,R3 & R1 &    & R2 & R1 \\ \hline
+		\end{tabular}
+	}
+\end{table}
+\section*{9.1.1}
+\begin{itemize}
+	\item[1)]
+	$B_3,B_4$是循环,$B_2,B_3,B_5$是循环.
+	\item[2)]
+	\begin{itemize}
+	\item[(3)]	c=1+b
+	\item[(4)]	d=c-1
+	\item[(6)]	d=1+b
+	\item[(8)]	b=1+b
+	\item[(9)]	e=c-1
+	\end{itemize}
+	\item[3)]
+	对于$B_3,B_4$循环,a+b是公共子表达式;\\
+	对于$B_2,B_3,B_5$循环,c-a是公共字表达式.
+	\item[5)]对于$B_3,B_4$循环,a+b是循环不变计算;\\
+	对于$B_2,B_3,B_5$循环,没有循环不变计算.
+\end{itemize}
+\section*{9.1.4}
+\begin{lstlisting}
+	dp	=	0
+	i	=	0
+	t1	=	0
+L:t2	=	A[t1]
+	t4	=	B[t1]
+	t5	=	t2	*	t4
+	dp	=	dp	+	t5
+	i	=	i	+	1
+	t1	=	t1	+	8
+	if	i	<	n	goto	L
+\end{lstlisting}
+\end{document}
