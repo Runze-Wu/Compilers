@@ -365,8 +365,16 @@ void translate_Exp(Node root, Operand place) {
                 val = t1->u.const_val * t2->u.const_val;
             } else if (strcmp(get_child(root, 1)->name, "DIV") == 0) {
                 ir_kind = IR_DIV;
-                // 除零溢出
-                val = t2->u.const_val ? t1->u.const_val / t2->u.const_val : 0;
+                // 除零溢出和向下取整
+                long long lhsVal = t1->u.const_val;
+                long long rhsVal = t2->u.const_val;
+                if (lhsVal < 0 && rhsVal > 0) {
+                    val = (lhsVal - rhsVal + 1) / rhsVal;
+                } else if (lhsVal > 0 && rhsVal < 0) {
+                    val = (lhsVal - rhsVal - 1) / rhsVal;
+                } else {
+                    val = rhsVal ? lhsVal / rhsVal : 0;
+                }
             } else {
                 assert(0);
             }
