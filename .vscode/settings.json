@@ -1,0 +1,10 @@
+{
+    "files.associations": {
+        "*.cmm": "asciidoc",
+        "*.tcc": "cpp",
+        "istream": "cpp",
+        "ostream": "cpp",
+        "objectcode.h": "c",
+        "controlflow.h": "c"
+    }
+}

@@ -25,6 +25,7 @@ int global_fb_count;       // FB块个数
 int fb_number;             // FB块编号
 int var_nums;              // 变量加临时变量个数
 BasicBlockList* bb_array;  // BB链表数组，便于索引
+FunctionBlock* fb_array;   // FB数组，便于索引
 
 struct CPPair_ {
     enum { UNDEF, NAC, CONST } kind;
