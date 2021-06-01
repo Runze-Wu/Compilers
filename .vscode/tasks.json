@@ -6,7 +6,7 @@
             "command": "./debug.sh",
             "args": [],
             "options": {
-                "cwd": "${workspaceFolder}/lab3/Lab/Code"
+                "cwd": "${workspaceFolder}/lab4/Lab/Code"
             },
             "problemMatcher": [
                 "$gcc"

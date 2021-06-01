@@ -11,4 +11,5 @@ gcc -g -std=c99   -c -o translator.o translator.c
 gcc -g -std=c99   -c -o intercode.o intercode.c
 gcc -g -std=c99   -c -o mytree.o mytree.c
 gcc -g -std=c99   -c -o hashtab.o hashtab.c
-gcc -g -o parser ./semant.o ./main.o  ./controlflow.o ./translator.o ./intercode.o ./syntax.tab.o ./mytree.o ./hashtab.o -lfl -ly
+gcc -g -std=c99   -c -o objectcode.o objectcode.c
+gcc -g -o parser ./semant.o ./main.o  ./objectcode.o ./controlflow.o ./translator.o ./intercode.o ./syntax.tab.o ./mytree.o ./hashtab.o -lfl -ly

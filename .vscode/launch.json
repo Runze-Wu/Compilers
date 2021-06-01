@@ -8,13 +8,13 @@
             "name": "gdb",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/lab3/Lab/Code/parser", // parser程序
+            "program": "${workspaceFolder}/lab4/Lab/Code/parser", // parser程序
             "args": [
-                "${workspaceFolder}/lab3/Lab/Test/test1.cmm",
-                "${workspaceFolder}/lab3/Lab/Test/test1.ir"
+                "${workspaceFolder}/lab4/Lab/Test/test1.cmm",
+                "${workspaceFolder}/lab4/Lab/Test/test1.ir"
             ], // 执行参数
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/lab3/Lab/Code", // 这个改不改好像无所谓
+            "cwd": "${workspaceFolder}/lab4/Lab/Code", // 这个改不改好像无所谓
             "environment": [],
             "externalConsole": false,
             "MIMode": "gdb",
