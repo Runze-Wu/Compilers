@@ -287,7 +287,13 @@ Operand gen_operand(int operand_kind, long long val, int number, char* name) {
         case OP_FUNCTION:
             result = look_up(name);
             assert(result != NULL && result->type->kind == FUNCTION);
-            res_op->u.func_name = name;
+            if (strcmp("main", name) == 0) {
+                res_op->u.func_name = name;
+            } else {
+                res_op->u.func_name = (char*)malloc(strlen(name) + 6);
+                sprintf(res_op->u.func_name, "func_%s", name);
+            }
+
             break;
         case OP_ARRAY:
             result = look_up(name);
