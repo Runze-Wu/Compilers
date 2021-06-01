@@ -10,7 +10,8 @@ void gencode(FILE* code_out) {
     for (int i = 0; i < fb_number; i++) {
         init_varlist();
         initsymbol_fb(fb_array[i], code_out);
-        show_varlist();
+        // show_ir(bb_array[fb_array[i]->bb_first]->bb->first->code, stdout);
+        // show_varlist();
         gencode_fb(fb_array[i], code_out);
         fprintf(code_out, "\n");
         release_varlist();
@@ -49,7 +50,7 @@ void init_environment(FILE* code_out) {
 
 void initsymbol_fb(FunctionBlock fb, FILE* code_out) {
     assert(fb && code_out);
-    local_offset = -4;
+    local_offset = 0;
     arg_num = 0;
     param_num = 0;
     for (int j = fb->bb_first; j <= fb->bb_last; j++) {
@@ -220,6 +221,7 @@ void gen_ir_RETURN(InterCode ir, FILE* code_out) {
     int reg = get_reg(ir->u.unary_ir.op, false, code_out);
     fprintf(code_out, "  move $v0, $%s\n", regs[reg].name);
     fprintf(code_out, "  jr $ra\n");
+    clear_reg(reg);
 }
 
 void gen_ir_ARG(InterCode ir, FILE* code_out) {
@@ -229,6 +231,7 @@ void gen_ir_ARG(InterCode ir, FILE* code_out) {
     int reg = get_reg(ir->u.unary_ir.op, false, code_out);
     fprintf(code_out, "  addi $sp, $sp, -4\n");
     fprintf(code_out, "  sw $%s, 0($sp)\n", regs[reg].name);
+    clear_reg(reg);
 }
 
 void gen_ir_PARAM(InterCode ir, FILE* code_out) { assert(ir && code_out); }
@@ -262,6 +265,7 @@ void gen_ir_WRITE(InterCode ir, FILE* code_out) {
     // 恢复栈指针和返回地址
     fprintf(code_out, "  lw $ra, 0($sp)\n");
     fprintf(code_out, "  addi $sp, $sp, 4\n");
+    clear_reg(reg);
 }
 
 void gen_ir_DEC(InterCode ir, FILE* code_out) { assert(ir && code_out); }
@@ -278,16 +282,21 @@ void gen_ir_ASSIGN_ADDR(InterCode ir, FILE* code_out) {
 
 void gen_ir_LOAD_STORE(InterCode ir, FILE* code_out) {
     assert(ir && code_out);
-    int left = get_reg(ir->u.binary_ir.left, true, code_out);
-    int right = get_reg(ir->u.binary_ir.right, false, code_out);
     assert(ir->kind == IR_LOAD || ir->kind == IR_STORE);
-    if (ir->kind == IR_LOAD) {
+    int left, right;
+    if (ir->kind == IR_LOAD) {  // x = *y
+        left = get_reg(ir->u.binary_ir.left, true, code_out);
+        right = get_reg(ir->u.binary_ir.right, false, code_out);
         fprintf(code_out, "  lw $%s, 0($%s)\n", regs[left].name, regs[right].name);
-    } else {
-        fprintf(code_out, "  rw $%s, 0($%s)\n", regs[right].name, regs[left].name);
+        store_reg(left, code_out);
+        clear_reg(right);
+    } else {  // *x = y
+        left = get_reg(ir->u.binary_ir.left, false, code_out);
+        right = get_reg(ir->u.binary_ir.right, false, code_out);
+        fprintf(code_out, "  sw $%s, 0($%s)\n", regs[right].name, regs[left].name);
+        clear_reg(left);
+        clear_reg(right);
     }
-    store_reg(left, code_out);
-    clear_reg(right);
 }
 
 void gen_ir_CALL(InterCode ir, FILE* code_out) {
@@ -334,7 +343,6 @@ void gen_ir_ARITH(InterCode ir, FILE* code_out) {
             assert(0);
             break;
     }
-
     if (ir->kind == IR_DIV) {
         fprintf(code_out, "  %s $%s,$%s\n", arith_op, regs[op1].name, regs[op2].name);
         fprintf(code_out, "  mflo $%s\n", regs[res].name);
@@ -396,10 +404,10 @@ int get_reg(Operand op, bool left, FILE* code_out) {
         switch (op->kind) {
             case OP_TEMP:
             case OP_VARIABLE:
+            case OP_ADDRESS:
                 if (!left) fprintf(code_out, "  lw $%s, %d($fp)\n", regs[i].name, var->offset);
                 break;
             case OP_ARRAY:
-            case OP_ADDRESS:
                 fprintf(code_out, "  addi $%s, $fp, %d\n", regs[i].name, var->offset);
                 break;
         }
