@@ -18,9 +18,9 @@ void optimize() {
     init_fb_array();
     construct_fb_array();
     construct_cfg();
-    show_cfg();
-    CP();
-    LVA();
+    // show_cfg();
+    // CP();
+    // LVA();
 }
 
 void remove_redundant_label() {
@@ -298,7 +298,7 @@ void show_bb(BasicBlock bb, FILE* ir_out) {
     if (bb == NULL || ir_out == NULL) return;
     InterCodeList cur = bb->first;
     do {
-        if (optimizer_debug || ir_out != stdout) show_ir(cur->code, ir_out);
+        show_ir(cur->code, ir_out);
         cur = cur->next;
     } while (cur != bb->last->next);
 }

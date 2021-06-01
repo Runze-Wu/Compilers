@@ -1,12 +1,13 @@
 #include <stdio.h>
 
 #include "controlflow.h"
+#include "objectcode.h"
 #include "semant.h"
 #include "syntax.tab.h"
 #include "translator.h"
 
 FILE* yyin;                          // This is the file pointer from which the lexer reads its input.
-FILE* ir_out;                        // the file pointer from which the translator writes its output.
+FILE* code_out;                      // the file pointer from which the translator writes its output.
 int lexical_errs = 0;                // 出现的词法错误
 int syntax_errs = 0;                 // 出现的语法错误
 int semantic_errs = 0;               // 出现的语义错误
@@ -36,7 +37,7 @@ int main(int argc, char** argv) {
             perror(argv[1]);
             return 1;
         }
-        if (!(ir_out = fopen(argv[2], "w"))) {
+        if (!(code_out = fopen(argv[2], "w"))) {
             perror(argv[2]);
             return 1;
         }
@@ -54,17 +55,18 @@ int main(int argc, char** argv) {
         Program(root);
         if (semantic_errs == 0) {
             translate_Program(root);
-            // show_ir_list(global_ir_list_head, ir_out);
+            // show_ir_list(global_ir_list_head, code_out);
 
             if (optimizer_debug) {
-                show_ir_list(global_ir_list_head, ir_out);
+                show_ir_list(global_ir_list_head, stdout);
                 optimize();
-                show_bb_list(global_bb_list_head, NULL);
+                // show_bb_list(global_bb_list_head, NULL);
             } else {
                 show_ir_list(global_ir_list_head, NULL);
                 optimize();
-                show_bb_list(global_bb_list_head, ir_out);
+                show_bb_list(global_bb_list_head, stdout);
             }
+            gencode(code_out);
         }
     }
     return 0;
