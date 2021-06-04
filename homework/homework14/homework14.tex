@@ -98,6 +98,7 @@
 	$B_4$ & 1,2,3,5,7,8,9 & 1,2,3,6,7,8 \\ \hline
 	$B_5$ & 1,2,3,5,7,8,9 & 1,3,5,8,9 \\ \hline
 	$B_6$ & 1,3,5,8,9 & 3,5,9,10,11 \\ \hline
+	EXIT  & 3,5,9,10,11 & 3,5,9,10,11 \\ \hline
 \end{tabular}
 \end{table}
 \section*{9.2.3}
@@ -120,7 +121,8 @@
 \centering
 \begin{tabular}{|c|c|c|}
 	\hline
-	\textbf{基本块} & \textbf{gen} & \textbf{kill} \\ \hline
+	\textbf{基本块} & \textbf{IN} & \textbf{OUT} \\ \hline
+	ENTRY & $\emptyset$ & e  \\ \hline
 	$B_1$ & e & a,b,e \\ \hline
 	$B_2$ & a,b,e & a,b,c,d,e \\ \hline
 	$B_3$ & a,b,c,d,e & a,b,c,d,e \\ \hline
