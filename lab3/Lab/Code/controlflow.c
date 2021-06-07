@@ -747,7 +747,15 @@ void CP_IR_out(InterCode ir, CPPair* out) {
                         } else if (ir->kind == IR_MUL) {
                             val = op1_val * op2_val;
                         } else if (ir->kind == IR_DIV) {
-                            val = op2_val ? op1_val / op2_val : 0;
+                            long long lhsVal = op1_val;
+                            long long rhsVal = op2_val;
+                            if (lhsVal < 0 && rhsVal > 0) {
+                                val = (lhsVal - rhsVal + 1) / rhsVal;
+                            } else if (lhsVal > 0 && rhsVal < 0) {
+                                val = (lhsVal - rhsVal - 1) / rhsVal;
+                            } else {
+                                val = rhsVal ? lhsVal / rhsVal : 0;
+                            }
                         }
                         set_CP_out(ir->u.ternary_ir.res, CONST, val, out);
                     } else if (out[op1_id].kind == NAC || out[op2_id].kind == NAC) {
@@ -766,7 +774,15 @@ void CP_IR_out(InterCode ir, CPPair* out) {
                         } else if (ir->kind == IR_MUL) {
                             val = op1_val * op2_val;
                         } else if (ir->kind == IR_DIV) {
-                            val = op2_val ? op1_val / op2_val : 0;
+                            long long lhsVal = op1_val;
+                            long long rhsVal = op2_val;
+                            if (lhsVal < 0 && rhsVal > 0) {
+                                val = (lhsVal - rhsVal + 1) / rhsVal;
+                            } else if (lhsVal > 0 && rhsVal < 0) {
+                                val = (lhsVal - rhsVal - 1) / rhsVal;
+                            } else {
+                                val = rhsVal ? lhsVal / rhsVal : 0;
+                            }
                         }
                         set_CP_out(ir->u.ternary_ir.res, CONST, val, out);
                     } else if (out[op1_id].kind == UNDEF) {
@@ -785,7 +801,15 @@ void CP_IR_out(InterCode ir, CPPair* out) {
                         } else if (ir->kind == IR_MUL) {
                             val = op1_val * op2_val;
                         } else if (ir->kind == IR_DIV) {
-                            val = op2_val ? op1_val / op2_val : 0;
+                            long long lhsVal = op1_val;
+                            long long rhsVal = op2_val;
+                            if (lhsVal < 0 && rhsVal > 0) {
+                                val = (lhsVal - rhsVal + 1) / rhsVal;
+                            } else if (lhsVal > 0 && rhsVal < 0) {
+                                val = (lhsVal - rhsVal - 1) / rhsVal;
+                            } else {
+                                val = rhsVal ? lhsVal / rhsVal : 0;
+                            }
                         }
                         set_CP_out(ir->u.ternary_ir.res, CONST, val, out);
                     } else if (out[op2_id].kind == UNDEF) {
@@ -988,7 +1012,15 @@ void CP_IR_constant(InterCodeList ir_point, CPPair* out) {
                         } else if (ir->kind == IR_MUL) {
                             val = op1_val * op2_val;
                         } else if (ir->kind == IR_DIV) {
-                            val = op2_val ? op1_val / op2_val : 0;
+                            long long lhsVal = op1_val;
+                            long long rhsVal = op2_val;
+                            if (lhsVal < 0 && rhsVal > 0) {
+                                val = (lhsVal - rhsVal + 1) / rhsVal;
+                            } else if (lhsVal > 0 && rhsVal < 0) {
+                                val = (lhsVal - rhsVal - 1) / rhsVal;
+                            } else {
+                                val = rhsVal ? lhsVal / rhsVal : 0;
+                            }
                         }
                         set_CP_out(ir->u.ternary_ir.res, CONST, val, out);
                         Operand right_val = gen_operand(OP_CONSTANT, val, -1, NULL);
@@ -1009,7 +1041,15 @@ void CP_IR_constant(InterCodeList ir_point, CPPair* out) {
                         } else if (ir->kind == IR_MUL) {
                             val = op1_val * op2_val;
                         } else if (ir->kind == IR_DIV) {
-                            val = op2_val ? op1_val / op2_val : 0;
+                            long long lhsVal = op1_val;
+                            long long rhsVal = op2_val;
+                            if (lhsVal < 0 && rhsVal > 0) {
+                                val = (lhsVal - rhsVal + 1) / rhsVal;
+                            } else if (lhsVal > 0 && rhsVal < 0) {
+                                val = (lhsVal - rhsVal - 1) / rhsVal;
+                            } else {
+                                val = rhsVal ? lhsVal / rhsVal : 0;
+                            }
                         }
                         set_CP_out(ir->u.ternary_ir.res, CONST, val, out);
                         Operand right_val = gen_operand(OP_CONSTANT, val, -1, NULL);
@@ -1030,7 +1070,15 @@ void CP_IR_constant(InterCodeList ir_point, CPPair* out) {
                         } else if (ir->kind == IR_MUL) {
                             val = op1_val * op2_val;
                         } else if (ir->kind == IR_DIV) {
-                            val = op2_val ? op1_val / op2_val : 0;
+                            long long lhsVal = op1_val;
+                            long long rhsVal = op2_val;
+                            if (lhsVal < 0 && rhsVal > 0) {
+                                val = (lhsVal - rhsVal + 1) / rhsVal;
+                            } else if (lhsVal > 0 && rhsVal < 0) {
+                                val = (lhsVal - rhsVal - 1) / rhsVal;
+                            } else {
+                                val = rhsVal ? lhsVal / rhsVal : 0;
+                            }
                         }
                         set_CP_out(ir->u.ternary_ir.res, CONST, val, out);
                         Operand right_val = gen_operand(OP_CONSTANT, val, -1, NULL);
@@ -1050,7 +1098,15 @@ void CP_IR_constant(InterCodeList ir_point, CPPair* out) {
                     } else if (ir->kind == IR_MUL) {
                         val = op1_val * op2_val;
                     } else if (ir->kind == IR_DIV) {
-                        val = op2_val ? op1_val / op2_val : 0;
+                        long long lhsVal = op1_val;
+                        long long rhsVal = op2_val;
+                        if (lhsVal < 0 && rhsVal > 0) {
+                            val = (lhsVal - rhsVal + 1) / rhsVal;
+                        } else if (lhsVal > 0 && rhsVal < 0) {
+                            val = (lhsVal - rhsVal - 1) / rhsVal;
+                        } else {
+                            val = rhsVal ? lhsVal / rhsVal : 0;
+                        }
                     }
                     set_CP_out(ir->u.ternary_ir.res, CONST, val, out);
                     Operand right_val = gen_operand(OP_CONSTANT, val, -1, NULL);
