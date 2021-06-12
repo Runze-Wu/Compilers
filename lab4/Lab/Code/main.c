@@ -31,14 +31,11 @@ int main(int argc, char** argv) {
     // translator_debug = 1;
     // translator_struct = 1;
     // optimizer_debug = 1;
-    if (argc <= 2) return 1;
-    if (argc > 2) {
+    if (argc <= 2)
+        return 1;
+    else {
         if (!(yyin = fopen(argv[1], "r"))) {
             perror(argv[1]);
-            return 1;
-        }
-        if (!(code_out = fopen(argv[2], "w"))) {
-            perror(argv[2]);
             return 1;
         }
         if (yydebug) printf("open file:%s\n", argv[1]);
@@ -55,18 +52,14 @@ int main(int argc, char** argv) {
         Program(root);
         if (semantic_errs == 0) {
             translate_Program(root);
-            // show_ir_list(global_ir_list_head, code_out);
-
-            if (optimizer_debug) {
-                show_ir_list(global_ir_list_head, stdout);
-                optimize();
-                // show_bb_list(global_bb_list_head, NULL);
-            } else {
-                show_ir_list(global_ir_list_head, NULL);
-                optimize();
-                show_bb_list(global_bb_list_head, stdout);
+            show_ir_list(global_ir_list_head, NULL);
+            optimize();
+            if (!(code_out = fopen(argv[2], "w"))) {
+                perror(argv[2]);
+                return 1;
             }
             gencode(code_out);
+            fclose(code_out);
         }
     }
     return 0;
