@@ -324,6 +324,26 @@ Operand gen_operand(int operand_kind, long long val, int number, char* name) {
     return res_op;
 }
 
+ArgList init_arg_list() {
+    ArgList arg_list_head = (ArgList)malloc(sizeof(struct ArgList_));
+    assert(arg_list_head != NULL);
+    arg_list_head->arg = NULL;
+    arg_list_head->prev = arg_list_head->next = arg_list_head;
+    return arg_list_head;
+}
+
+void add_arg(ArgList head, Operand arg) {
+    if (arg == NULL) return;
+    ArgList new_term = (ArgList)malloc(sizeof(struct ArgList_));
+    assert(new_term != NULL);
+    new_term->arg = arg;
+    ArgList tail = head->prev;
+    tail->next = new_term;
+    new_term->prev = tail;
+    head->prev = new_term;
+    new_term->next = head;
+}
+
 Operand new_temp() { return gen_operand(OP_TEMP, -1, temp_number++, NULL); }
 
 Operand new_addr() { return gen_operand(OP_ADDRESS, -1, addr_number++, NULL); }

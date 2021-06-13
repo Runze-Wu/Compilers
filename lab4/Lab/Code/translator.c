@@ -91,6 +91,8 @@ void translate_FunDec(Node root) {
                     arg_op = gen_operand(OP_VARIABLE, -1, -1, arg_field->name);
                     break;
                 case ARRAY:
+                    printf("Cannot translate: Code contains parameters of array type.");
+                    exit(-1);
                     arg_op = gen_operand(OP_ARRAY, -1, -1, arg_field->name);
                     break;
                 case STRUCTURE:  // 假设不存在结构变量
@@ -391,13 +393,31 @@ void translate_Exp(Node root, Operand place) {
         if (strcmp(get_child(root, 0)->name, "ID") == 0) {  // Exp -> ID LP Args RP
             FieldList function = look_up(get_child(root, 0)->val);
             assert(function != NULL);
+            ArgList arg_list = init_arg_list();
+            translate_Args(get_child(root, 2), arg_list);
             if (strcmp(function->name, "write") == 0) {
-                translate_Args(get_child(root, 2), true);
+                arg_list->next->arg = load_value(arg_list->next->arg);
+                gen_ir(global_ir_list_head, IR_WRITE, arg_list->next->arg, NULL, NULL, -1, NULL);
                 // place := #0
                 place->kind = OP_CONSTANT;
                 place->u.const_val = 0;
             } else {
-                translate_Args(get_child(root, 2), false);
+                ArgList current = arg_list->next;
+                while (current != arg_list) {
+                    Operand arg = current->arg;
+                    if (arg->kind == OP_ARRAY) {
+                        arg = get_addr(arg, true);
+                    } else if (arg->kind == OP_ADDRESS) {
+                        if (arg->type == NULL) {  // 参数是数值
+                            arg = load_value(arg);
+                        } else if (arg->type->kind == BASIC) {  // 参数是一维数组
+                        } else {                                // 高维数组不会作为参数
+                            assert(0);
+                        }
+                    }
+                    gen_ir(global_ir_list_head, IR_ARG, arg, NULL, NULL, -1, NULL);
+                    current = current->next;
+                }
                 // place := CALL function.name
                 Operand func_op = gen_operand(OP_FUNCTION, -1, -1, function->name);
                 gen_ir(global_ir_list_head, IR_CALL, place, func_op, NULL, -1, NULL);
@@ -451,37 +471,21 @@ void translate_Exp(Node root, Operand place) {
     }
 }
 
-void translate_Args(Node root, bool write_func) {
+void translate_Args(Node root, ArgList arg_list) {
     if (root == NULL) return;
     dump_translator_node(root, "Args");
     assert(root->child_num == 1 || root->child_num == 3);
 
     if (root->child_num == 1) {         // Args -> Exp
     } else if (root->child_num == 3) {  // Args -> Exp COMMA Args
-        assert(!write_func);            // WRITE 只有一个参数
-        translate_Args(get_child(root, 2), write_func);
+        translate_Args(get_child(root, 2), arg_list);
     }
     Operand arg = new_temp();
     translate_Exp(get_child(root, 0), arg);
     if (arg->kind == OP_STRUCTURE) {  // 不存在结构体类型的变量作为参数
         dump_structure_err();
     }
-    if (write_func) {  // WRITE arg
-        arg = load_value(arg);
-        gen_ir(global_ir_list_head, IR_WRITE, arg, NULL, NULL, -1, NULL);
-    } else {
-        if (arg->kind == OP_ARRAY) {
-            arg = get_addr(arg, true);
-        } else if (arg->kind == OP_ADDRESS) {
-            if (arg->type == NULL) {  // 参数是数值
-                arg = load_value(arg);
-            } else if (arg->type->kind == BASIC) {  // 参数是一维数组
-            } else {                                // 高维数组不会作为参数
-                assert(0);
-            }
-        }
-        gen_ir(global_ir_list_head, IR_ARG, arg, NULL, NULL, -1, NULL);
-    }
+    add_arg(arg_list, arg);
 }
 
 void translate_Cond(Node root, Operand label_true, Operand label_false) {

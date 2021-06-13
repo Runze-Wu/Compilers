@@ -30,7 +30,7 @@ void translate_DecList(Node root);
 void translate_Dec(Node root);
 
 void translate_Exp(Node root, Operand place);
-void translate_Args(Node root, bool write_func);
+void translate_Args(Node root, ArgList arg_list);
 
 void translate_Cond(Node root, Operand true_label, Operand false_label);
 
