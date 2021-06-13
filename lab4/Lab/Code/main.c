@@ -51,9 +51,12 @@ int main(int argc, char** argv) {
         // print_tree(root, 0);
         Program(root);
         if (semantic_errs == 0) {
+            // FILE* temp_ir = fopen("a.ir", "w");
             translate_Program(root);
+            // show_ir_list(global_ir_list_head, temp_ir);
             show_ir_list(global_ir_list_head, NULL);
             optimize();
+            // show_ir_list(global_ir_list_head, stdout);
             if (!(code_out = fopen(argv[2], "w"))) {
                 perror(argv[2]);
                 return 1;
