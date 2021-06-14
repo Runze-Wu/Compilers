@@ -91,8 +91,8 @@ void translate_FunDec(Node root) {
                     arg_op = gen_operand(OP_VARIABLE, -1, -1, arg_field->name);
                     break;
                 case ARRAY:
-                    printf("Cannot translate: Code contains parameters of array type.");
-                    exit(-1);
+                    // printf("Cannot translate: Code contains parameters of array type.");
+                    // exit(-1);
                     arg_op = gen_operand(OP_ARRAY, -1, -1, arg_field->name);
                     break;
                 case STRUCTURE:  // 假设不存在结构变量
@@ -295,7 +295,7 @@ void translate_Exp(Node root, Operand place) {
             Operand t1 = new_temp();
             translate_Exp(get_child(root, 1), t1);
             t1 = load_value(t1);
-            if (false && t1->kind == OP_CONSTANT) {
+            if (t1->kind == OP_CONSTANT) {
                 place->kind = OP_CONSTANT;
                 place->u.const_val = -1 * t1->u.const_val;
             } else {  // place := #0 - t1
